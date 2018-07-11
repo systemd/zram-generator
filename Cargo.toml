@@ -1,0 +1,12 @@
+[package]
+name = "zram-generator"
+version = "0.1.0"
+authors = ["Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl>"]
+license = "MIT"
+description = "Systemd unit generator for zram devices"
+homepage = "https://github.com/systemd/zram-generator"
+
+[dependencies]
+failure = "0.1"
+failure_derive = "0.1"
+rust-ini = "0.12"
