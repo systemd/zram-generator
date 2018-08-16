@@ -1,0 +1,3 @@
+[zram0]
+memory-limit = 9048
+zram-fraction = 0.10

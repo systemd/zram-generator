@@ -43,6 +43,7 @@ fn main() {
     let config = match Config::new(&args) {
         Ok(ok) => ok,
         Err(e) => {
+            println!("{}", e);
             std::process::exit(1);
         },
     };
@@ -77,28 +78,35 @@ impl Config {
             memory_limit_mb,
             zram_fraction,
         };
-        config.read();
+        config.read()?;
         Ok(config)
     }
 
-    fn read(&mut self) {
+    fn read(&mut self) -> Result<(), Error> {
         let path = Path::new("/etc/systemd/zram-generator.conf");
-        if !path.exists() {
-            return;
+        if path.exists() {
+            let conf = Ini::load_from_file(path).with_path(path)?;
+
+            if let Some(section) = conf.section(Some("zram0".to_owned())) {
+                if let Some(val) = section.get("memory-limit") {
+                    let val = match val.parse() {
+                        Ok(ok) => ok,
+                        Err(e) => return Err(format_err!("Failed to parse memory-limit \"{}\": {}", val, e)),
+                    };
+                    self.memory_limit_mb = val;
+                };
+
+                if let Some(val) = section.get("zram-fraction") {
+                    let val = match val.parse() {
+                        Ok(ok) => ok,
+                        Err(e) => return Err(format_err!("Failed to parse zram-fraction \"{}\": {}", val, e)),
+                    };
+
+                    self.zram_fraction = val;
+                };
+            }
         }
-
-        // I guess theses unwraps are intentional, right?
-        let conf = Ini::load_from_file(path).with_path(path).unwrap();
-
-        if let Some(section) = conf.section(Some("zram0".to_owned())) {
-            if let Some(mem) = section.get("memory-limit") {
-                self.memory_limit_mb = mem.parse().unwrap();
-            };
-
-            if let Some(fra) = section.get("zram-fraction") {
-                self.zram_fraction = fra.parse().unwrap();
-            };
-        }
+        Ok(())
     }
 }
 
