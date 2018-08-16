@@ -134,6 +134,12 @@ fn run(config: Config) -> Result<(), Error> {
         return Ok(());
     }
 
+    let modules_load_path = "/run/modules-load.d/zram.conf";
+    let modules_load_path = Path::new(&modules_load_path);
+    let _ = fs::create_dir(modules_load_path.parent().unwrap());
+    let mut modules_load = fs::File::create(modules_load_path).with_path(modules_load_path)?;
+    modules_load.write(b"zram\n")?;
+
     let disksize = (config.zram_fraction * memtotal as f64) as u64 * 1024;
     let service_name = format!("swap-create@{}.service", config.zram_device);
     println!("Creating {} for /dev/{} ({}MB)",
@@ -148,6 +154,8 @@ fn run(config: Config) -> Result<(), Error> {
 Description=Create swap on /dev/%i
 Wants=systemd-modules-load.service
 After=systemd-modules-load.service
+After=dev-zram0.device
+DefaultDependencies=false
 
 [Service]
 Type=oneshot
