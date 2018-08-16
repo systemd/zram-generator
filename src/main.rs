@@ -12,6 +12,7 @@ use std::fs;
 use std::io::prelude::*;
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::result;
 
 pub trait ResultExt<T, E>: failure::ResultExt<T, E>
@@ -36,6 +37,14 @@ fn make_symlink(dst: &str, src: &Path) -> Result<(), Error> {
     let _ = fs::create_dir(&parent);
     symlink(dst, src).with_path(src)?;
     Ok(())
+}
+
+fn virtualization_container() -> Result<bool, Error> {
+    let output = match Command::new("systemd-detect-virt").arg("--container").output() {
+        Ok(ok) => ok,
+        Err(e) => return Err(format_err!("systemd-detect-virt call failed: {}", e)),
+    };
+    return Ok(output.status.success());
 }
 
 fn main() {
@@ -112,6 +121,11 @@ impl Config {
 
 fn run(config: Config) -> Result<(), Error> {
     let memtotal = get_total_memory()?;
+
+    if virtualization_container()? {
+        println!("Running in a container, exiting.");
+        return Ok(());
+    }
 
     if memtotal as f64 / 1024. > config.memory_limit_mb as f64 {
         println!("System has too much memory ({:.1}MB), limit is {}MB, exiting.",
