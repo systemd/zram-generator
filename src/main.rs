@@ -98,20 +98,13 @@ impl Config {
 
             if let Some(section) = conf.section(Some("zram0".to_owned())) {
                 if let Some(val) = section.get("memory-limit") {
-                    let val = match val.parse() {
-                        Ok(ok) => ok,
-                        Err(e) => return Err(format_err!("Failed to parse memory-limit \"{}\": {}", val, e)),
-                    };
-                    self.memory_limit_mb = val;
-                };
+                    self.memory_limit_mb = val.parse()
+                        .map_err(|e| format_err!("Failed to parse memory-limit \"{}\":{}", val, e))?;
+                }
 
                 if let Some(val) = section.get("zram-fraction") {
-                    let val = match val.parse() {
-                        Ok(ok) => ok,
-                        Err(e) => return Err(format_err!("Failed to parse zram-fraction \"{}\": {}", val, e)),
-                    };
-
-                    self.zram_fraction = val;
+                    self.zram_fraction = val.parse()
+                        .map_err(|e| format_err!("Failed to parse zram-fraction \"{}\": {}", val, e))?;
                 };
             }
         }
