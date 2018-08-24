@@ -63,11 +63,26 @@ fn main() {
     }
 }
 
-struct Config {
-    output_directory: PathBuf,
-    zram_device: String,
+struct Device {
+    name: String,
     memory_limit_mb: u64,
     zram_fraction: f64,
+}
+
+impl Device {
+    fn new(name: String) -> Device {
+        Device {
+            name,
+            memory_limit_mb: 2 * 1024,
+            zram_fraction: 0.25,
+        }
+    }
+}
+
+struct Config {
+    output_directory: PathBuf,
+
+    devices: Vec<Device>,
 }
 
 impl Config {
@@ -77,66 +92,73 @@ impl Config {
             _ => return Err(failure::err_msg("This program requires 1 or 3 arguments")),
         };
 
-        let zram_device = String::from("zram0");
-        let memory_limit_mb = 2 * 1024;
-        let zram_fraction = 0.25;
+        let devices = Vec::new();
 
         let mut config = Config {
             output_directory,
-            zram_device,
-            memory_limit_mb,
-            zram_fraction,
+            devices,
         };
-        config.read()?;
+
+        let found = config.read()?;
+
+        if !found {
+            config.devices.push(Device::new("zram0".to_string()));
+        }
+
         Ok(config)
     }
 
-    fn read(&mut self) -> Result<(), Error> {
+    fn read(&mut self) -> Result<bool, Error> {
         let path = Path::new("/etc/systemd/zram-generator.conf");
-        if path.exists() {
-            let conf = Ini::load_from_file(path).with_path(path)?;
-
-            if let Some(section) = conf.section(Some("zram0".to_owned())) {
-                if let Some(val) = section.get("memory-limit") {
-                    self.memory_limit_mb = val.parse()
-                        .map_err(|e| format_err!("Failed to parse memory-limit \"{}\":{}", val, e))?;
-                }
-
-                if let Some(val) = section.get("zram-fraction") {
-                    self.zram_fraction = val.parse()
-                        .map_err(|e| format_err!("Failed to parse zram-fraction \"{}\": {}", val, e))?;
-                };
-            }
+        if !path.exists() {
+            return Ok(false);
         }
-        Ok(())
+
+        let conf = Ini::load_from_file(path).with_path(path)?;
+
+        let no_title = "(no title)".into();
+        for (section_name, section) in conf.iter() {
+            let section_name = section_name.as_ref().unwrap_or(&no_title);
+
+            if !section_name.starts_with("zram") {
+                println!("Ignoring section \"{}\"", section_name);
+                continue;
+            }
+
+            let mut dev = Device::new(section_name.to_string());
+
+            if let Some(val) = section.get("memory-limit") {
+                dev.memory_limit_mb = val.parse()
+                    .map_err(|e| format_err!("Failed to parse memory-limit \"{}\":{}", val, e))?;
+            }
+
+            if let Some(val) = section.get("zram-fraction") {
+                dev.zram_fraction = val.parse()
+                    .map_err(|e| format_err!("Failed to parse zram-fraction \"{}\": {}", val, e))?;
+            };
+
+            println!("Created config {} {} {}", dev.name, dev.memory_limit_mb, dev.zram_fraction);
+            self.devices.push(dev);
+        }
+
+        Ok(true)
     }
 }
 
-fn run(config: Config) -> Result<(), Error> {
-    let memtotal = get_total_memory()?;
-
-    if virtualization_container()? {
-        println!("Running in a container, exiting.");
-        return Ok(());
+fn handle_device(config: &Config, device: &Device, memtotal_mb: f64) -> Result<bool, Error> {
+    if memtotal_mb > device.memory_limit_mb as f64 {
+        println!("{}: system has too much memory ({:.1}MB), limit is {}MB, ignoring.",
+                 device.name,
+                 memtotal_mb,
+                 device.memory_limit_mb);
+        return Ok(false);
     }
-
-    if memtotal as f64 / 1024. > config.memory_limit_mb as f64 {
-        println!("System has too much memory ({:.1}MB), limit is {}MB, exiting.",
-                 memtotal as f64 / 1024.,
-                 config.memory_limit_mb);
-        return Ok(());
-    }
-
-    let modules_load_path = "/run/modules-load.d/zram.conf";
-    let modules_load_path = Path::new(&modules_load_path);
-    let _ = fs::create_dir(modules_load_path.parent().unwrap());
-    let mut modules_load = fs::File::create(modules_load_path).with_path(modules_load_path)?;
-    modules_load.write(b"zram\n")?;
-
-    let disksize = (config.zram_fraction * memtotal as f64) as u64 * 1024;
-    let service_name = format!("swap-create@{}.service", config.zram_device);
+    
+    let disksize = (device.zram_fraction * memtotal_mb) as u64 * 1024 * 1024;
+    let service_name = format!("swap-create@{}.service", device.name);
     println!("Creating {} for /dev/{} ({}MB)",
-             service_name, config.zram_device, disksize / 1024 / 1024);
+             service_name, device.name, disksize / 1024 / 1024);
+    let device_name = format!("dev-{}.device", device.name);
 
     let service_path = config.output_directory.join(&service_name);
     let service_path = Path::new(&service_path);
@@ -147,7 +169,7 @@ fn run(config: Config) -> Result<(), Error> {
 Description=Create swap on /dev/%i
 Wants=systemd-modules-load.service
 After=systemd-modules-load.service
-After=dev-zram0.device
+After={device_name}
 DefaultDependencies=false
 
 [Service]
@@ -155,12 +177,14 @@ Type=oneshot
 ExecStart=sh -c 'echo {disksize} >/sys/block/%i/disksize'
 ExecStart=mkswap /dev/%i
 ",
-        disksize = disksize
+        device_name = device_name,
+        disksize = disksize,
     );
 
     service.write_all(&contents.into_bytes())?;
 
-    let swap_path = config.output_directory.join("dev-zram0.swap");
+    let swap_name = format!("dev-{}.swap", device.name);
+    let swap_path = config.output_directory.join(&swap_name);
     let swap_path = Path::new(&swap_path);
     let mut swap = fs::File::create(swap_path).with_path(swap_path)?;
 
@@ -174,14 +198,41 @@ After={service}
 What=/dev/{zram_device}
 ",
         service = service_name,
-        zram_device = config.zram_device
+        zram_device = device.name
     );
 
     swap.write_all(&contents.into_bytes())?;
 
-    let wants_dir = config.output_directory.join("swap.target.wants");
-    let symlink_path = wants_dir.join("dev-zram0.swap");
-    make_symlink("../dev-zram0.swap", &symlink_path)?;
+    let symlink_path = config.output_directory.join("swap.target.wants").join(&swap_name);
+    let target_path = format!("../{}", swap_name);
+    make_symlink(&target_path, &symlink_path)?;
+    Ok(true)
+}
+
+fn run(config: Config) -> Result<(), Error> {
+    let memtotal = get_total_memory()?;
+    let memtotal_mb = memtotal as f64 / 1024.;
+
+    let mut some = false;
+
+    if virtualization_container()? {
+        println!("Running in a container, exiting.");
+        return Ok(());
+    }
+
+    for dev in &config.devices {
+        let found = handle_device(&config, dev, memtotal_mb)?;
+        some |= found;
+    }
+
+    if some {
+        /* We created some services, let's make sure the module is loaded */
+        let modules_load_path = "/run/modules-load.d/zram.conf";
+        let modules_load_path = Path::new(&modules_load_path);
+        let _ = fs::create_dir(modules_load_path.parent().unwrap());
+        let mut modules_load = fs::File::create(modules_load_path).with_path(modules_load_path)?;
+        modules_load.write(b"zram\n")?;
+    }
 
     Ok(())
 }
