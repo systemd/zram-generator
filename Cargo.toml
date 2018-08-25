@@ -1,6 +1,6 @@
 [package]
 name = "zram-generator"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl>"]
 license = "MIT"
 description = "Systemd unit generator for zram devices"
