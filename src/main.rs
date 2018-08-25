@@ -57,6 +57,11 @@ fn main() {
         },
     };
 
+    if config.devices.len() == 0 {
+        println!("No devices configured, exiting.");
+        std::process::exit(0);
+    }
+
     if let Err(e) = run(config) {
         println!("{}", e);
         std::process::exit(2);
@@ -99,11 +104,7 @@ impl Config {
             devices,
         };
 
-        let found = config.read()?;
-
-        if !found {
-            config.devices.push(Device::new("zram0".to_string()));
-        }
+        config.read()?;
 
         Ok(config)
     }
@@ -111,6 +112,7 @@ impl Config {
     fn read(&mut self) -> Result<bool, Error> {
         let path = Path::new("/etc/systemd/zram-generator.conf");
         if !path.exists() {
+            println!("No configuration file found.");
             return Ok(false);
         }
 
@@ -137,7 +139,8 @@ impl Config {
                     .map_err(|e| format_err!("Failed to parse zram-fraction \"{}\": {}", val, e))?;
             };
 
-            println!("Created config {} {} {}", dev.name, dev.memory_limit_mb, dev.zram_fraction);
+            println!("Found configuration for {}: memory-limit={}MB zram-fraction={}",
+                     dev.name, dev.memory_limit_mb, dev.zram_fraction);
             self.devices.push(dev);
         }
 

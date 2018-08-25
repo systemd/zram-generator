@@ -6,3 +6,4 @@
 - figure out how to tell cargo to install into
   /usr/lib/systemd/system-generators not /usr/bin
 - make swap priority configurable?
+- read configuration also from /usr/lib?
