@@ -9,4 +9,4 @@ homepage = "https://github.com/systemd/zram-generator"
 [dependencies]
 failure = "0.1.2"
 failure_derive = "0.1"
-rust-ini = "~0.12"
+rust-ini = "0.13"
