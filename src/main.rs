@@ -34,7 +34,7 @@ impl<T, E: fmt::Display> ResultExt<T, E> for result::Result<T, E> where
 fn make_symlink(dst: &str, src: &Path) -> Result<(), Error> {
     let parent = src.parent()
         .ok_or_else(|| format_err!("Couldn't get parent of {}", src.display()))?;
-    let _ = fs::create_dir(&parent);
+    let _ = fs::create_dir_all(&parent);
     symlink(dst, src).with_path(src)?;
     Ok(())
 }
@@ -239,7 +239,7 @@ fn run(config: Config) -> Result<(), Error> {
         let modules_load_path = Path::new(&modules_load_path);
         let parent_path = modules_load_path.parent()
             .ok_or_else(|| format_err!("Couldn't get parent of {}", modules_load_path.display()))?;
-        let _ = fs::create_dir(parent_path)?;
+        let _ = fs::create_dir_all(parent_path)?;
         let mut modules_load = fs::File::create(modules_load_path).with_path(modules_load_path)?;
         modules_load.write(b"zram\n")?;
     }
