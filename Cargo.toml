@@ -7,6 +7,6 @@ description = "Systemd unit generator for zram devices"
 homepage = "https://github.com/systemd/zram-generator"
 
 [dependencies]
-failure = "0.1.2"
+failure = "0.1"
 failure_derive = "0.1"
 rust-ini = "0.13"
