@@ -177,6 +177,7 @@ DefaultDependencies=false
 
 [Service]
 Type=oneshot
+ExecStartPre=-modprobe zram
 ExecStart=sh -c 'echo {disksize} >/sys/block/%i/disksize'
 ExecStart=mkswap /dev/%i
 ",
