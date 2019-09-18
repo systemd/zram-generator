@@ -130,8 +130,12 @@ impl Config {
             let mut dev = Device::new(section_name.to_string());
 
             if let Some(val) = section.get("memory-limit") {
-                dev.memory_limit_mb = val.parse()
-                    .map_err(|e| format_err!("Failed to parse memory-limit \"{}\":{}", val, e))?;
+                if val == "none" {
+                    dev.memory_limit_mb = 18446744073709551615;
+                } else {
+                    dev.memory_limit_mb = val.parse()
+                        .map_err(|e| format_err!("Failed to parse memory-limit \"{}\":{}", val, e))?;
+                }
             }
 
             if let Some(val) = section.get("zram-fraction") {

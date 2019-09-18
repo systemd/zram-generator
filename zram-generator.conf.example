@@ -6,6 +6,8 @@
 #
 # The default is 2048 MiB, i.e. the device is only created on machines
 # with limited memory.
+#
+# "memory-limit = none" may be used to disable this limit.
 memory-limit = 9048
 
 # The fraction of memory to use as ZRAM. For example, if the machine
