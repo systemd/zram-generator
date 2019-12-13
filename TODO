@@ -1,8 +1,6 @@
 - instead of using the shell in the service file, consider calling the generator
   binary again and doing the initalization from it.
 - logging in generators needs to go to kmsg, println!() is not enough.
-- add a testing mode where, if $ZRAM_GENERATOR_ROOT=... is set, and do everything
-  relative to this path then.
 - figure out how to tell cargo to install into
   /usr/lib/systemd/system-generators not /usr/bin
 - make swap priority configurable?
