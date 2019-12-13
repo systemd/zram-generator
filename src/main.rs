@@ -6,12 +6,13 @@ extern crate ini;
 
 use failure::Error;
 use ini::Ini;
+use std::borrow::Cow;
 use std::env;
 use std::fmt;
 use std::fs;
 use std::io::prelude::*;
 use std::os::unix::fs::symlink;
-use std::path::{Path, PathBuf};
+use std::path::{self, Path, PathBuf};
 use std::process::Command;
 use std::result;
 
@@ -48,8 +49,17 @@ fn virtualization_container() -> Result<bool, Error> {
 }
 
 fn main() {
+    let root: Cow<'static, str> =
+        env::var("ZRAM_GENERATOR_ROOT").map(|mut root| {
+            if !root.ends_with(path::is_separator) {
+                root.push('/');
+            }
+            println!("Using {:?} as root directory", root);
+            root.into()
+        }).unwrap_or("/".into());
+
     let args: Vec<String> = env::args().collect();
-    let config = match Config::new(&args) {
+    let config = match Config::new(&args, root) {
         Ok(ok) => ok,
         Err(e) => {
             println!("{}", e);
@@ -85,13 +95,15 @@ impl Device {
 }
 
 struct Config {
+    root: Cow<'static, str>,
+
     output_directory: PathBuf,
 
     devices: Vec<Device>,
 }
 
 impl Config {
-    fn new(args: &[String]) -> Result<Config, Error> {
+    fn new(args: &[String], root: Cow<'static, str>) -> Result<Config, Error> {
         let output_directory = match args.len() {
             2 | 4 => PathBuf::from(&args[1]),
             _ => return Err(failure::err_msg("This program requires 1 or 3 arguments")),
@@ -100,6 +112,7 @@ impl Config {
         let devices = Vec::new();
 
         let mut config = Config {
+            root,
             output_directory,
             devices,
         };
@@ -110,13 +123,13 @@ impl Config {
     }
 
     fn read(&mut self) -> Result<bool, Error> {
-        let path = Path::new("/etc/systemd/zram-generator.conf");
+        let path = Path::new(&self.root[..]).join("etc/systemd/zram-generator.conf");
         if !path.exists() {
             println!("No configuration file found.");
             return Ok(false);
         }
 
-        let conf = Ini::load_from_file(path).with_path(path)?;
+        let conf = Ini::load_from_file(&path).with_path(&path)?;
 
         let no_title = "(no title)".into();
         for (section_name, section) in conf.iter() {
@@ -160,7 +173,7 @@ fn handle_device(config: &Config, device: &Device, memtotal_mb: f64) -> Result<b
                  device.memory_limit_mb);
         return Ok(false);
     }
-    
+
     let disksize = (device.zram_fraction * memtotal_mb) as u64 * 1024 * 1024;
     let service_name = format!("swap-create@{}.service", device.name);
     println!("Creating {} for /dev/{} ({}MB)",
@@ -218,7 +231,7 @@ What=/dev/{zram_device}
 }
 
 fn run(config: Config) -> Result<(), Error> {
-    let memtotal = get_total_memory()?;
+    let memtotal = get_total_memory(&config.root)?;
     let memtotal_mb = memtotal as f64 / 1024.;
 
     let mut some = false;
@@ -235,22 +248,21 @@ fn run(config: Config) -> Result<(), Error> {
 
     if some {
         /* We created some services, let's make sure the module is loaded */
-        let modules_load_path = "/run/modules-load.d/zram.conf";
-        let modules_load_path = Path::new(&modules_load_path);
+        let modules_load_path = Path::new(&config.root[..]).join("run/modules-load.d/zram.conf");
         let parent_path = modules_load_path.parent()
             .ok_or_else(|| format_err!("Couldn't get parent of {}", modules_load_path.display()))?;
         let _ = fs::create_dir_all(parent_path)?;
-        let mut modules_load = fs::File::create(modules_load_path).with_path(modules_load_path)?;
+        let mut modules_load = fs::File::create(&modules_load_path).with_path(&modules_load_path)?;
         modules_load.write(b"zram\n")?;
     }
 
     Ok(())
 }
 
-fn get_total_memory() -> Result<u64, Error> {
-    let path = Path::new("/proc/meminfo");
+fn get_total_memory(root: &str) -> Result<u64, Error> {
+    let path = Path::new(root).join("proc/meminfo");
 
-    let mut file = fs::File::open(&path).with_path(path)?;
+    let mut file = fs::File::open(&path).with_path(&path)?;
 
     let mut s = String::new();
     file.read_to_string(&mut s)?;
