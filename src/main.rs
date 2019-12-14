@@ -202,6 +202,7 @@ After={service}
 
 [Swap]
 What={root}dev/{zram_device}
+Options=pri=100
 ",
         root = config.root,
         service = service_name,
