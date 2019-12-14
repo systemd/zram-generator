@@ -201,6 +201,7 @@ After={service}
 
 [Swap]
 What=/dev/{zram_device}
+Options=pri=100
 ",
         service = service_name,
         zram_device = device.name
