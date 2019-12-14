@@ -10,10 +10,11 @@ use std::borrow::Cow;
 use std::env;
 use std::fmt;
 use std::fs;
-use std::io::prelude::*;
+use std::io::{prelude::*, BufReader};
+use std::iter::FromIterator;
 use std::os::unix::fs::symlink;
 use std::path::{self, Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::result;
 
 pub trait ResultExt<T, E>: failure::ResultExt<T, E>
@@ -32,20 +33,24 @@ impl<T, E: fmt::Display> ResultExt<T, E> for result::Result<T, E> where
     result::Result<T, E>: failure::ResultExt<T, E>
 {}
 
+fn make_parent(of: &Path) -> Result<(), Error> {
+    let parent = of.parent()
+        .ok_or_else(|| format_err!("Couldn't get parent of {}", of.display()))?;
+    fs::create_dir_all(&parent)?;
+    Ok(())
+}
+
 fn make_symlink(dst: &str, src: &Path) -> Result<(), Error> {
-    let parent = src.parent()
-        .ok_or_else(|| format_err!("Couldn't get parent of {}", src.display()))?;
-    let _ = fs::create_dir_all(&parent);
+    make_parent(src)?;
     symlink(dst, src).with_path(src)?;
     Ok(())
 }
 
 fn virtualization_container() -> Result<bool, Error> {
-    let output = match Command::new("systemd-detect-virt").arg("--container").output() {
-        Ok(ok) => ok,
-        Err(e) => return Err(format_err!("systemd-detect-virt call failed: {}", e)),
-    };
-    return Ok(output.status.success());
+    match Command::new("systemd-detect-virt").arg("--container").stdout(Stdio::null()).status() {
+        Ok(status) => Ok(status.success()),
+        Err(e) => Err(format_err!("systemd-detect-virt call failed: {}", e)),
+    }
 }
 
 fn main() {
@@ -67,7 +72,7 @@ fn main() {
         },
     };
 
-    if config.devices.len() == 0 {
+    if config.devices.is_empty() {
         println!("No devices configured, exiting.");
         std::process::exit(0);
     }
@@ -96,9 +101,7 @@ impl Device {
 
 struct Config {
     root: Cow<'static, str>,
-
     output_directory: PathBuf,
-
     devices: Vec<Device>,
 }
 
@@ -109,59 +112,46 @@ impl Config {
             _ => return Err(failure::err_msg("This program requires 1 or 3 arguments")),
         };
 
-        let devices = Vec::new();
-
-        let mut config = Config {
-            root,
-            output_directory,
-            devices,
-        };
-
-        config.read()?;
-
-        Ok(config)
+        let devices = Config::read_devices(&root)?;
+        Ok(Config { root, output_directory, devices })
     }
 
-    fn read(&mut self) -> Result<bool, Error> {
-        let path = Path::new(&self.root[..]).join("etc/systemd/zram-generator.conf");
+    fn read_devices(root: &str) -> Result<Vec<Device>, Error> {
+        let path = Path::new(root).join("etc/systemd/zram-generator.conf");
         if !path.exists() {
             println!("No configuration file found.");
-            return Ok(false);
+            return Ok(vec![]);
         }
 
-        let conf = Ini::load_from_file(&path).with_path(&path)?;
-
-        let no_title = "(no title)".into();
-        for (section_name, section) in conf.iter() {
-            let section_name = section_name.as_ref().unwrap_or(&no_title);
+        Result::from_iter(Ini::load_from_file(&path).with_path(&path)?.into_iter().map(|(section_name, section)| {
+            let section_name = section_name.map(Cow::Owned).unwrap_or(Cow::Borrowed("(no title)"));
 
             if !section_name.starts_with("zram") {
                 println!("Ignoring section \"{}\"", section_name);
-                continue;
+                return Ok(None);
             }
 
-            let mut dev = Device::new(section_name.to_string());
+            let mut dev = Device::new(section_name.into_owned());
 
             if let Some(val) = section.get("memory-limit") {
                 if val == "none" {
                     dev.memory_limit_mb = u64::max_value();
                 } else {
                     dev.memory_limit_mb = val.parse()
-                        .map_err(|e| format_err!("Failed to parse memory-limit \"{}\":{}", val, e))?;
+                        .map_err(|e| format_err!("Failed to parse memory-limit \"{}\": {}", val, e))?;
                 }
             }
 
             if let Some(val) = section.get("zram-fraction") {
                 dev.zram_fraction = val.parse()
                     .map_err(|e| format_err!("Failed to parse zram-fraction \"{}\": {}", val, e))?;
-            };
+            }
 
             println!("Found configuration for {}: memory-limit={}MB zram-fraction={}",
                      dev.name, dev.memory_limit_mb, dev.zram_fraction);
-            self.devices.push(dev);
-        }
 
-        Ok(true)
+            Ok(Some(dev))
+        }).map(Result::transpose).flatten())
     }
 }
 
@@ -178,11 +168,8 @@ fn handle_device(config: &Config, device: &Device, memtotal_mb: f64) -> Result<b
     let service_name = format!("swap-create@{}.service", device.name);
     println!("Creating {} for /dev/{} ({}MB)",
              service_name, device.name, disksize / 1024 / 1024);
-    let device_name = format!("dev-{}.device", device.name);
 
     let service_path = config.output_directory.join(&service_name);
-    let service_path = Path::new(&service_path);
-    let mut service = fs::File::create(service_path).with_path(service_path)?;
 
     let contents = format!("\
 [Unit]
@@ -198,16 +185,13 @@ ExecStartPre=-modprobe zram
 ExecStart=sh -c 'echo {disksize} >/sys/block/%i/disksize'
 ExecStart=mkswap /dev/%i
 ",
-        device_name = device_name,
+        device_name = format!("dev-{}.device", device.name),
         disksize = disksize,
     );
-
-    service.write_all(&contents.into_bytes())?;
+    fs::write(&service_path, contents).with_path(service_path)?;
 
     let swap_name = format!("dev-{}.swap", device.name);
     let swap_path = config.output_directory.join(&swap_name);
-    let swap_path = Path::new(&swap_path);
-    let mut swap = fs::File::create(swap_path).with_path(swap_path)?;
 
     let contents = format!("\
 [Unit]
@@ -222,7 +206,7 @@ What=/dev/{zram_device}
         zram_device = device.name
     );
 
-    swap.write_all(&contents.into_bytes())?;
+    fs::write(&swap_path, contents).with_path(swap_path)?;
 
     let symlink_path = config.output_directory.join("swap.target.wants").join(&swap_name);
     let target_path = format!("../{}", swap_name);
@@ -231,50 +215,39 @@ What=/dev/{zram_device}
 }
 
 fn run(config: Config) -> Result<(), Error> {
-    let memtotal = get_total_memory(&config.root)?;
+    let memtotal = get_total_memory_kb(&config.root)?;
     let memtotal_mb = memtotal as f64 / 1024.;
-
-    let mut some = false;
 
     if virtualization_container()? {
         println!("Running in a container, exiting.");
         return Ok(());
     }
 
+    let mut devices_made = false;
     for dev in &config.devices {
-        let found = handle_device(&config, dev, memtotal_mb)?;
-        some |= found;
+        devices_made |= handle_device(&config, dev, memtotal_mb)?;
     }
-
-    if some {
+    if devices_made {
         /* We created some services, let's make sure the module is loaded */
         let modules_load_path = Path::new(&config.root[..]).join("run/modules-load.d/zram.conf");
-        let parent_path = modules_load_path.parent()
-            .ok_or_else(|| format_err!("Couldn't get parent of {}", modules_load_path.display()))?;
-        let _ = fs::create_dir_all(parent_path)?;
-        let mut modules_load = fs::File::create(&modules_load_path).with_path(&modules_load_path)?;
-        modules_load.write(b"zram\n")?;
+        make_parent(&modules_load_path)?;
+        fs::write(&modules_load_path, "zram\n").with_path(modules_load_path)?;
     }
 
     Ok(())
 }
 
-fn get_total_memory(root: &str) -> Result<u64, Error> {
+fn get_total_memory_kb(root: &str) -> Result<u64, Error> {
     let path = Path::new(root).join("proc/meminfo");
 
-    let mut file = fs::File::open(&path).with_path(&path)?;
-
-    let mut s = String::new();
-    file.read_to_string(&mut s)?;
-
-    for line in s.lines() {
-        let fields: Vec<_> = line.split_whitespace().collect();
-        if let (Some(k), Some(v)) = (fields.get(0), fields.get(1)) {
-            if *k == "MemTotal:" {
-                let memtotal: u64 = v.parse()?;
-                return Ok(memtotal);
-            };
-        };
+    for line in BufReader::new(fs::File::open(&path).with_path(&path)?).lines() {
+        let line = line?;
+        let mut fields = line.split_whitespace();
+        if let Some("MemTotal:") = fields.next() {
+            if let Some(v) = fields.next() {
+                return Ok(v.parse()?);
+            }
+        }
     }
 
     Err(format_err!("Couldn't find MemTotal in {}", path.display()))
