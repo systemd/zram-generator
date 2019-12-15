@@ -2,6 +2,7 @@
 
 mod config;
 mod generator;
+mod setup;
 
 use config::Config;
 

@@ -1,5 +1,3 @@
-- instead of using the shell in the service file, consider calling the generator
-  binary again and doing the initalization from it.
 - logging in generators needs to go to kmsg, println!() is not enough.
 - figure out how to tell cargo to install into
   /usr/lib/systemd/system-generators not /usr/bin

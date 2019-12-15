@@ -2,6 +2,7 @@
 
 use anyhow::{anyhow, Context, Result};
 use crate::generator::run_generator;
+use crate::setup::run_device_setup;
 use ini::Ini;
 use std::borrow::Cow;
 use std::env;
@@ -38,6 +39,7 @@ pub struct Config {
 
 pub enum ModuleConfig {
     Generator { output_directory: PathBuf },
+    DeviceSetup { name: String },
 }
 
 
@@ -50,14 +52,30 @@ impl Config {
         };
         println!("Using {:?} as a root directory", root);
 
-        let args: Vec<String> = env::args().collect();
-        let output_directory = match args.len() {
-            2 | 4 => PathBuf::from(&args[1]),
-            _ => return Err(anyhow!("This program requires 1 or 3 arguments")),
+        let mut args = env::args().skip(1);
+        let module = match args.next() {
+            Some(outdir) => {
+                match &outdir[..] {
+                    "--setup-device" =>
+                        ModuleConfig::DeviceSetup {
+                            name: args.next()
+                                      .filter(|dev| &dev[0..4] == "zram")
+                                      .ok_or_else(|| anyhow!("--setup-device requires device argument"))?
+                        },
+                    _ =>
+                        match (args.next(), args.next(), args.next()) {
+                            (Some(_), Some(_), None) |
+                            (None, None, None) =>
+                                ModuleConfig::Generator { output_directory: PathBuf::from(outdir) },
+                            _ =>
+                                return Err(anyhow!("This program requires 1 or 3 arguments")),
+                        }
+                }
+            }
+            None => return Err(anyhow!("This program requires 1 or 3 arguments")),
         };
 
         let devices = Config::read_devices(&root)?;
-        let module = ModuleConfig::Generator { output_directory };
         Ok(Config { root, devices, module })
     }
 
@@ -125,9 +143,8 @@ impl Config {
 
     pub fn run(self) -> Result<()> {
         match self.module {
-            ModuleConfig::Generator { output_directory } => {
-                run_generator(self.root, self.devices, output_directory)
-            }
+            ModuleConfig::Generator { output_directory } => run_generator(self.root, self.devices, output_directory),
+            ModuleConfig::DeviceSetup { name } => run_device_setup(self.devices, name),
         }
     }
 }
