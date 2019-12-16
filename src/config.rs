@@ -5,6 +5,8 @@ use crate::generator::run_generator;
 use ini::Ini;
 use std::borrow::Cow;
 use std::env;
+use std::fs;
+use std::io::{prelude::*, BufReader};
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 
@@ -13,6 +15,7 @@ pub struct Device {
     pub name: String,
     pub memory_limit_mb: u64,
     pub zram_fraction: f64,
+    pub disksize: u64,
 }
 
 impl Device {
@@ -21,6 +24,7 @@ impl Device {
             name,
             memory_limit_mb: 2 * 1024,
             zram_fraction: 0.25,
+            disksize: 0,
         }
     }
 }
@@ -64,6 +68,8 @@ impl Config {
             return Ok(vec![]);
         }
 
+        let memtotal_mb = get_total_memory_kb(&root)? as f64 / 1024.;
+
         Result::from_iter(
             Ini::load_from_file(&path)
                 .with_context(|| format!("Failed to read configuration from {}", path.display()))?
@@ -101,7 +107,16 @@ impl Config {
                         dev.name, dev.memory_limit_mb, dev.zram_fraction
                     );
 
-                    Ok(Some(dev))
+                    if memtotal_mb > dev.memory_limit_mb as f64 {
+                        println!(
+                            "{}: system has too much memory ({:.1}MB), limit is {}MB, ignoring.",
+                            dev.name, memtotal_mb, dev.memory_limit_mb
+                        );
+                        Ok(None)
+                    } else {
+                        dev.disksize = (dev.zram_fraction * memtotal_mb) as u64 * 1024 * 1024;
+                        Ok(Some(dev))
+                    }
                 })
                 .map(Result::transpose)
                 .flatten(),
@@ -115,4 +130,26 @@ impl Config {
             }
         }
     }
+}
+
+
+fn get_total_memory_kb(root: &str) -> Result<u64> {
+    let path = Path::new(root).join("proc/meminfo");
+
+    for line in
+        BufReader::new(fs::File::open(&path).with_context(|| {
+            format!("Failed to read memory information from {}", path.display())
+        })?)
+        .lines()
+    {
+        let line = line?;
+        let mut fields = line.split_whitespace();
+        if let Some("MemTotal:") = fields.next() {
+            if let Some(v) = fields.next() {
+                return Ok(v.parse()?);
+            }
+        }
+    }
+
+    Err(anyhow!("Couldn't find MemTotal in {}", path.display()))
 }
