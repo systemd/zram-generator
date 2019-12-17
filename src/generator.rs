@@ -43,6 +43,11 @@ fn virtualization_container() -> Result<bool> {
 
 
 pub fn run_generator(root: Cow<'static, str>, devices: Vec<Device>, output_directory: PathBuf) -> Result<()> {
+    if devices.is_empty() {
+       println!("No devices configured, exiting.");
+       return Ok(());
+    }
+
     if virtualization_container()? {
         println!("Running in a container, exiting.");
         return Ok(());
@@ -53,7 +58,9 @@ pub fn run_generator(root: Cow<'static, str>, devices: Vec<Device>, output_direc
         devices_made |= handle_device(&output_directory, dev)?;
     }
     if devices_made {
-        /* We created some services, let's make sure the module is loaded */
+        /* We created some devices, let's make sure the module is loaded and creation service is present */
+        make_service_template(&output_directory)?;
+
         let modules_load_path = Path::new(&root[..]).join("run/modules-load.d/zram.conf");
         make_parent(&modules_load_path)?;
         fs::write(&modules_load_path, "zram\n").with_context(|| {
@@ -67,16 +74,8 @@ pub fn run_generator(root: Cow<'static, str>, devices: Vec<Device>, output_direc
     Ok(())
 }
 
-fn handle_device(output_directory: &Path, device: &Device) -> Result<bool> {
-    let service_name = format!("swap-create@{}.service", device.name);
-    println!(
-        "Creating {} for /dev/{} ({}MB)",
-        service_name,
-        device.name,
-        device.disksize / 1024 / 1024
-    );
-
-    let service_path = output_directory.join(&service_name);
+fn make_service_template(output_directory: &Path) -> Result<()> {
+    let service_path = output_directory.join("swap-create@.service");
 
     let contents = format!(
         "\
@@ -86,7 +85,7 @@ fn handle_device(output_directory: &Path, device: &Device) -> Result<bool> {
 Description=Create swap on /dev/%i
 Wants=systemd-modules-load.service
 After=systemd-modules-load.service
-After={device_name}
+After=dev-%i.device
 DefaultDependencies=false
 
 [Service]
@@ -95,7 +94,6 @@ RemainAfterExit=yes
 ExecStartPre=-modprobe zram
 ExecStart={generator} --setup-device '%i'
 ",
-        device_name = format!("dev-{}.device", device.name),
         generator = env::current_exe().context("Couldn't get path to generator executable")?.display(),
     );
     fs::write(&service_path, contents).with_context(|| {
@@ -105,7 +103,18 @@ ExecStart={generator} --setup-device '%i'
         )
     })?;
 
+    Ok(())
+}
+
+fn handle_device(output_directory: &Path, device: &Device) -> Result<bool> {
     let swap_name = format!("dev-{}.swap", device.name);
+    println!(
+        "Creating {} for /dev/{} ({}MB)",
+        swap_name,
+        device.name,
+        device.disksize / 1024 / 1024
+    );
+
     let swap_path = output_directory.join(&swap_name);
 
     let contents = format!(
@@ -114,14 +123,13 @@ ExecStart={generator} --setup-device '%i'
 
 [Unit]
 Description=Compressed swap on /dev/{zram_device}
-Requires={service}
-After={service}
+Requires=swap-create@{zram_device}.service
+After=swap-create@{zram_device}.service
 
 [Swap]
 What=/dev/{zram_device}
 Options=pri=100
 ",
-        service = service_name,
         zram_device = device.name
     );
     fs::write(&swap_path, contents).with_context(|| {
