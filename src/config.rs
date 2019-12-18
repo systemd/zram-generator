@@ -6,6 +6,7 @@ use crate::setup::run_device_setup;
 use ini::ini::{Ini, Properties as IniProperties, SectionIntoIter};
 use std::borrow::Cow;
 use std::env;
+use std::fmt;
 use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::iter::FromIterator;
@@ -14,7 +15,7 @@ use std::path::{Path, PathBuf};
 
 pub struct Device {
     pub name: String,
-    pub memory_limit_mb: u64,
+    pub host_memory_limit_mb: Option<u64>,
     pub zram_fraction: f64,
     pub compression_algorithm: Option<String>,
     pub disksize: u64,
@@ -24,11 +25,30 @@ impl Device {
     fn new(name: String) -> Device {
         Device {
             name,
-            memory_limit_mb: 2 * 1024,
+            host_memory_limit_mb: Some(2 * 1024),
             zram_fraction: 0.25,
             compression_algorithm: None,
             disksize: 0,
         }
+    }
+}
+
+impl fmt::Display for Device {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: host-memory-limit=", self.name)?;
+        match self.host_memory_limit_mb {
+            Some(limit) => {
+                write!(f, "{}", limit)?;
+                f.write_str("MB")?;
+            }
+            None => f.write_str("<none>")?,
+        }
+        write!(f, " zram-fraction={} compression-algorithm=", self.zram_fraction)?;
+        match self.compression_algorithm.as_ref() {
+            Some(alg) => f.write_str(alg)?,
+            None => f.write_str("<default>")?,
+        }
+        Ok(())
     }
 }
 
@@ -127,16 +147,16 @@ impl Config {
 
         let mut dev = Device::new(section_name.into_owned());
 
-        if let Some(val) = section.get("memory-limit") {
+        if let Some(val) = section.get("host-memory-limit") {
             if val == "none" {
-                dev.memory_limit_mb = u64::max_value();
+                dev.host_memory_limit_mb = None;
             } else {
-                dev.memory_limit_mb = val.parse().with_context(|| {
+                dev.host_memory_limit_mb = Some(val.parse().with_context(|| {
                     format!(
-                        "Failed to parse memory-limit \"{}\"",
-                        val
+                        "Failed to parse host-memory-limit \"{}\"",
+                        val,
                     )
-                })?;
+                })?);
             }
         }
 
@@ -153,20 +173,20 @@ impl Config {
             dev.compression_algorithm = Some(val);
         }
 
-        println!(
-            "Found configuration for {}: memory-limit={}MB zram-fraction={} compression-algorithm={}",
-            dev.name, dev.memory_limit_mb, dev.zram_fraction, dev.compression_algorithm.as_ref().map(String::as_str).unwrap_or("<default>")
-        );
+        println!("Found configuration for {}", dev);
 
-        if memtotal_mb > dev.memory_limit_mb as f64 {
-            println!(
-                "{}: system has too much memory ({:.1}MB), limit is {}MB, ignoring.",
-                dev.name, memtotal_mb, dev.memory_limit_mb
-            );
-            Ok(None)
-        } else {
-            dev.disksize = (dev.zram_fraction * memtotal_mb) as u64 * 1024 * 1024;
-            Ok(Some(dev))
+        match dev.host_memory_limit_mb {
+            Some(limit) if memtotal_mb > limit as f64 => {
+                println!(
+                    "{}: system has too much memory ({:.1}MB), limit is {}MB, ignoring.",
+                    dev.name, memtotal_mb, limit
+                );
+                Ok(None)
+            }
+            _ => {
+                dev.disksize = (dev.zram_fraction * memtotal_mb) as u64 * 1024 * 1024;
+                Ok(Some(dev))
+            }
         }
     }
 
