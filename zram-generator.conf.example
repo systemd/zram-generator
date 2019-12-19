@@ -17,6 +17,16 @@ host-memory-limit = 9048
 # The default is 0.25.
 zram-fraction = 0.10
 
+# The maximum size of the zram device (in MiB).
+#
+# If host-memory times zram-fraction is greater than this,
+# the size will be capped to this amount;
+# for example, on a machine with 2 GiB of RAM and with zram-fraction=0.5,
+# the device would still be 512 MiB in size due to the limit below.
+#
+# The default is 4096.
+max-zram-size = 512
+
 # The compression algorithm to use for the zram device,
 # or leave unspecified for your distribution's default.
 compression-algorithm = lzo-rle
