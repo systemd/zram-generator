@@ -55,3 +55,21 @@ jobs:
         with:
           command: fmt
           args: -- --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          profile: minimal
+          components: clippy
+      - name: Check formatting
+        uses: actions-rs/clippy@master
+        with:
+          args: -- -D warnings
