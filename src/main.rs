@@ -38,9 +38,9 @@ fn virtualization_container() -> Result<bool> {
     }
 }
 
-fn main() {
-    let root: Cow<'static, str> =
-        env::var("ZRAM_GENERATOR_ROOT").map(|mut root| {
+fn main() -> Result<()> {
+    let root: Cow<'static, str> = env::var("ZRAM_GENERATOR_ROOT")
+        .map(|mut root| {
             if !root.ends_with(path::is_separator) {
                 root.push('/');
             }
@@ -49,23 +49,14 @@ fn main() {
         }).unwrap_or_else(|_| "/".into());
 
     let args: Vec<String> = env::args().collect();
-    let config = match Config::new(&args, root) {
-        Ok(ok) => ok,
-        Err(e) => {
-            println!("{}", e);
-            std::process::exit(1);
-        },
-    };
+    let config = Config::new(&args, root)?;
 
     if config.devices.is_empty() {
         println!("No devices configured, exiting.");
-        std::process::exit(0);
+        return Ok(());
     }
 
-    if let Err(e) = run(config) {
-        println!("{}", e);
-        std::process::exit(2);
-    }
+    run(config)
 }
 
 struct Device {
