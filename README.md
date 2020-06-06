@@ -21,3 +21,8 @@ This program serves two purposes:
 
 2. Once we figure out all the details, it should be useful as an
    example of a systemd generator in rust.
+
+### Testing
+
+Set the `ZRAM_GENERATOR_ROOT` environment variable to use that
+instead of `/` as root.
