@@ -10,3 +10,6 @@ homepage = "https://github.com/systemd/zram-generator"
 failure = "0.1"
 failure_derive = "0.1"
 rust-ini = "0.13"
+
+[profile.release]
+lto = true
