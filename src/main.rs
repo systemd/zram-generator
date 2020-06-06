@@ -32,7 +32,11 @@ fn make_symlink(dst: &str, src: &Path) -> Result<()> {
 }
 
 fn virtualization_container() -> Result<bool> {
-    match Command::new("systemd-detect-virt").arg("--container").stdout(Stdio::null()).status() {
+    match Command::new("systemd-detect-virt")
+        .arg("--container")
+        .stdout(Stdio::null())
+        .status()
+    {
         Ok(status) => Ok(status.success()),
         Err(e) => Err(anyhow!("systemd-detect-virt call failed: {}", e)),
     }
@@ -87,7 +91,11 @@ impl Config {
         };
 
         let devices = Config::read_devices(&root)?;
-        Ok(Config { root, output_directory, devices })
+        Ok(Config {
+            root,
+            output_directory,
+            devices,
+        })
     }
 
     fn read_devices(root: &str) -> Result<Vec<Device>> {
@@ -97,57 +105,73 @@ impl Config {
             return Ok(vec![]);
         }
 
-        Result::from_iter(Ini::load_from_file(&path).with_context(|| format!("Failed to read configuration from {}", path.display()))?.into_iter().map(|(section_name, section)| {
-            let section_name = section_name.map(Cow::Owned).unwrap_or(Cow::Borrowed("(no title)"));
+        Result::from_iter(
+            Ini::load_from_file(&path)
+                .with_context(|| format!("Failed to read configuration from {}", path.display()))?
+                .into_iter()
+                .map(|(section_name, section)| {
+                    let section_name = section_name
+                        .map(Cow::Owned)
+                        .unwrap_or(Cow::Borrowed("(no title)"));
 
-            if !section_name.starts_with("zram") {
-                println!("Ignoring section \"{}\"", section_name);
-                return Ok(None);
-            }
+                    if !section_name.starts_with("zram") {
+                        println!("Ignoring section \"{}\"", section_name);
+                        return Ok(None);
+                    }
 
-            let mut dev = Device::new(section_name.into_owned());
+                    let mut dev = Device::new(section_name.into_owned());
 
-            if let Some(val) = section.get("memory-limit") {
-                if val == "none" {
-                    dev.memory_limit_mb = u64::max_value();
-                } else {
-                    dev.memory_limit_mb = val.parse().map_err(|e| {
-                        anyhow!("Failed to parse memory-limit \"{}\": {}", val, e)
-                    })?;
-                }
-            }
+                    if let Some(val) = section.get("memory-limit") {
+                        if val == "none" {
+                            dev.memory_limit_mb = u64::max_value();
+                        } else {
+                            dev.memory_limit_mb = val.parse().map_err(|e| {
+                                anyhow!("Failed to parse memory-limit \"{}\": {}", val, e)
+                            })?;
+                        }
+                    }
 
-            if let Some(val) = section.get("zram-fraction") {
-                dev.zram_fraction = val.parse().map_err(|e| {
-                    anyhow!("Failed to parse zram-fraction \"{}\": {}", val, e)
-                })?;
-            }
+                    if let Some(val) = section.get("zram-fraction") {
+                        dev.zram_fraction = val.parse().map_err(|e| {
+                            anyhow!("Failed to parse zram-fraction \"{}\": {}", val, e)
+                        })?;
+                    }
 
-            println!("Found configuration for {}: memory-limit={}MB zram-fraction={}",
-                     dev.name, dev.memory_limit_mb, dev.zram_fraction);
+                    println!(
+                        "Found configuration for {}: memory-limit={}MB zram-fraction={}",
+                        dev.name, dev.memory_limit_mb, dev.zram_fraction
+                    );
 
-            Ok(Some(dev))
-        }).map(Result::transpose).flatten())
+                    Ok(Some(dev))
+                })
+                .map(Result::transpose)
+                .flatten(),
+        )
     }
 }
 
 fn handle_device(config: &Config, device: &Device, memtotal_mb: f64) -> Result<bool> {
     if memtotal_mb > device.memory_limit_mb as f64 {
-        println!("{}: system has too much memory ({:.1}MB), limit is {}MB, ignoring.",
-                 device.name,
-                 memtotal_mb,
-                 device.memory_limit_mb);
+        println!(
+            "{}: system has too much memory ({:.1}MB), limit is {}MB, ignoring.",
+            device.name, memtotal_mb, device.memory_limit_mb
+        );
         return Ok(false);
     }
 
     let disksize = (device.zram_fraction * memtotal_mb) as u64 * 1024 * 1024;
     let service_name = format!("swap-create@{}.service", device.name);
-    println!("Creating {} for /dev/{} ({}MB)",
-             service_name, device.name, disksize / 1024 / 1024);
+    println!(
+        "Creating {} for /dev/{} ({}MB)",
+        service_name,
+        device.name,
+        disksize / 1024 / 1024
+    );
 
     let service_path = config.output_directory.join(&service_name);
 
-    let contents = format!("\
+    let contents = format!(
+        "\
 [Unit]
 Description=Create swap on /dev/%i
 Wants=systemd-modules-load.service
@@ -174,7 +198,8 @@ ExecStart=mkswap /dev/%i
     let swap_name = format!("dev-{}.swap", device.name);
     let swap_path = config.output_directory.join(&swap_name);
 
-    let contents = format!("\
+    let contents = format!(
+        "\
 [Unit]
 Description=Compressed swap on /dev/{zram_device}
 Requires={service}
@@ -195,7 +220,10 @@ Options=pri=100
         )
     })?;
 
-    let symlink_path = config.output_directory.join("swap.target.wants").join(&swap_name);
+    let symlink_path = config
+        .output_directory
+        .join("swap.target.wants")
+        .join(&swap_name);
     let target_path = format!("../{}", swap_name);
     make_symlink(&target_path, &symlink_path)?;
     Ok(true)
