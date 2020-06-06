@@ -8,7 +8,7 @@ use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::iter::FromIterator;
 use std::os::unix::fs::symlink;
-use std::path::{self, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 fn make_parent(of: &Path) -> Result<()> {
@@ -39,14 +39,12 @@ fn virtualization_container() -> Result<bool> {
 }
 
 fn main() -> Result<()> {
-    let root: Cow<'static, str> = env::var("ZRAM_GENERATOR_ROOT")
-        .map(|mut root| {
-            if !root.ends_with(path::is_separator) {
-                root.push('/');
-            }
-            println!("Using {:?} as root directory", root);
-            root.into()
-        }).unwrap_or_else(|_| "/".into());
+    let root: Cow<'static, str> = match env::var("ZRAM_GENERATOR_ROOT") {
+        Ok(val) => val.into(),
+        Err(env::VarError::NotPresent) => "/".into(),
+        Err(e) => return Err(e.into()),
+    };
+    println!("Using {:?} as a root directory", root);
 
     let args: Vec<String> = env::args().collect();
     let config = Config::new(&args, root)?;
