@@ -61,7 +61,7 @@ fn main() {
             }
             println!("Using {:?} as root directory", root);
             root.into()
-        }).unwrap_or("/".into());
+        }).unwrap_or_else(|_| "/".into());
 
     let args: Vec<String> = env::args().collect();
     let config = match Config::new(&args, root) {
