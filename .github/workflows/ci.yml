@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Build and run tests (rust ${{ matrix.rust }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - beta
+          - nightly
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+          profile: minimal
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose
+
+  rustfmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+          components: rustfmt
+      - name: Check formatting
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
