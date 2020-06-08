@@ -172,6 +172,9 @@ impl Config {
 
         if let Some(val) = section.get("host-memory-limit") {
             dev.host_memory_limit_mb = Config::parse_optional_size(val)?;
+        } else if let Some(val) = section.get("memory-limit") {
+            /* For backwards compat. Prefer the new name. */
+            dev.host_memory_limit_mb = Config::parse_optional_size(val)?;
         }
 
         if let Some(val) = section.get("zram-fraction") {
