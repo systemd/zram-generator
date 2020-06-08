@@ -128,7 +128,7 @@ After=swap-create@{zram_device}.service
 
 [Swap]
 What=/dev/{zram_device}
-Options=pri=100
+Priority=100
 ",
         zram_device = device.name
     );
