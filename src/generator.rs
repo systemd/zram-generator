@@ -53,7 +53,7 @@ pub fn run_generator(root: &Path, devices: &[Device], output_directory: &PathBuf
         /* We created some devices, let's make sure the module is loaded and creation service is present */
         make_service_template(output_directory)?;
 
-        let modules_load_path = root.join("run/modules-load.d/zram.conf");
+        let modules_load_path = root.join("run/modules-load.d/zram-generator.conf");
         make_parent(&modules_load_path)?;
         fs::write(&modules_load_path, "zram\n").with_context(|| {
             format!(
