@@ -2,7 +2,6 @@
 
 use crate::config::Device;
 use anyhow::{anyhow, Context, Result};
-use std::borrow::Cow;
 use std::env;
 use std::fs;
 use std::os::unix::fs::symlink;
@@ -35,11 +34,7 @@ fn virtualization_container() -> Result<bool> {
     }
 }
 
-pub fn run_generator(
-    root: Cow<'static, str>,
-    devices: Vec<Device>,
-    output_directory: PathBuf,
-) -> Result<()> {
+pub fn run_generator(root: &str, devices: Vec<Device>, output_directory: PathBuf) -> Result<()> {
     if devices.is_empty() {
         println!("No devices configured, exiting.");
         return Ok(());

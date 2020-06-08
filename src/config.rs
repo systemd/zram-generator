@@ -62,7 +62,6 @@ impl fmt::Display for Device {
 }
 
 pub struct Config {
-    pub root: Cow<'static, str>,
     pub module: ModuleConfig,
 }
 
@@ -78,12 +77,7 @@ pub enum ModuleConfig {
 }
 
 impl Config {
-    pub fn parse() -> Result<Config> {
-        let root: Cow<'static, str> = match env::var("ZRAM_GENERATOR_ROOT") {
-            Ok(val) => val.into(),
-            Err(env::VarError::NotPresent) => "/".into(),
-            Err(e) => return Err(e.into()),
-        };
+    pub fn parse(root: &str) -> Result<Config> {
         println!("Using {:?} as a root directory", root);
 
         let mut args = env::args().skip(1);
@@ -113,7 +107,7 @@ impl Config {
             None => return Err(anyhow!("This program requires 1 or 3 arguments")),
         };
 
-        Ok(Config { root, module })
+        Ok(Config { module })
     }
 
     fn read_device(root: &str, name: &str) -> Result<Option<Device>> {
@@ -218,12 +212,12 @@ impl Config {
         }
     }
 
-    pub fn run(self) -> Result<()> {
+    pub fn run(self, root: &str) -> Result<()> {
         match self.module {
             ModuleConfig::Generator {
                 devices,
                 output_directory,
-            } => run_generator(self.root, devices, output_directory),
+            } => run_generator(root, devices, output_directory),
             ModuleConfig::DeviceSetup { device, name } => run_device_setup(device, name),
         }
     }
