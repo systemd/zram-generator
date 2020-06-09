@@ -58,7 +58,7 @@ impl fmt::Display for Device {
     }
 }
 
-pub fn read_device(root: &str, name: &str) -> Result<Option<Device>> {
+pub fn read_device(root: &Path, name: &str) -> Result<Option<Device>> {
     match read_devices(root)?
         .find(|(section_name, _)| section_name.as_ref().map(String::as_str) == Some(name))
     {
@@ -70,7 +70,7 @@ pub fn read_device(root: &str, name: &str) -> Result<Option<Device>> {
     }
 }
 
-pub fn read_all_devices(root: &str) -> Result<Vec<Device>> {
+pub fn read_all_devices(root: &Path) -> Result<Vec<Device>> {
     let memtotal_mb = get_total_memory_kb(&root)? as f64 / 1024.;
     Result::from_iter(
         read_devices(root)?
@@ -80,8 +80,8 @@ pub fn read_all_devices(root: &str) -> Result<Vec<Device>> {
     )
 }
 
-fn read_devices(root: &str) -> Result<SectionIntoIter> {
-    let path = Path::new(root).join("etc/systemd/zram-generator.conf");
+fn read_devices(root: &Path) -> Result<SectionIntoIter> {
+    let path = root.join("etc/systemd/zram-generator.conf");
     if !path.exists() {
         println!("No configuration file found.");
         return Ok(Ini::new().into_iter());
@@ -179,8 +179,8 @@ fn _get_total_memory_kb(path: &Path) -> Result<u64> {
     Err(anyhow!("Couldn't find MemTotal in {}", path.display()))
 }
 
-fn get_total_memory_kb(root: &str) -> Result<u64> {
-    let path = Path::new(root).join("proc/meminfo");
+fn get_total_memory_kb(root: &Path) -> Result<u64> {
+    let path = root.join("proc/meminfo");
     _get_total_memory_kb(&path)
 }
 

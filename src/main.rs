@@ -4,12 +4,10 @@ mod config;
 mod generator;
 mod setup;
 
-use crate::generator::run_generator;
-use crate::setup::run_device_setup;
 use anyhow::{anyhow, Result};
 use std::borrow::Cow;
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::abort;
 use structopt::StructOpt;
 
@@ -45,15 +43,20 @@ fn main() -> Result<()> {
         Err(env::VarError::NotPresent) => "/".into(),
         Err(_) => abort(),
     };
+    let root = Path::new(&root[..]);
 
     let opts = get_opts()?;
 
     if opts.setup_device {
         let device = config::read_device(&root, &opts.arg)?;
-        Ok(run_device_setup(device, &opts.arg)?)
+        Ok(setup::run_device_setup(device, &opts.arg)?)
     } else {
         let devices = config::read_all_devices(&root)?;
         let output_directory = PathBuf::from(opts.arg);
-        Ok(run_generator(&root, devices, &output_directory)?)
+        Ok(generator::run_generator(
+            &root,
+            &devices,
+            &output_directory,
+        )?)
     }
 }
