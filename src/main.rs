@@ -7,7 +7,6 @@ mod setup;
 use crate::generator::run_generator;
 use crate::setup::run_device_setup;
 use anyhow::{anyhow, Result};
-use config::Config;
 use std::borrow::Cow;
 use std::env;
 use std::path::PathBuf;
@@ -50,10 +49,10 @@ fn main() -> Result<()> {
     let opts = get_opts()?;
 
     if opts.setup_device {
-        let device = Config::read_device(&root, &opts.arg)?;
+        let device = config::read_device(&root, &opts.arg)?;
         Ok(run_device_setup(device, &opts.arg)?)
     } else {
-        let devices = Config::read_all_devices(&root)?;
+        let devices = config::read_all_devices(&root)?;
         let output_directory = PathBuf::from(opts.arg);
         Ok(run_generator(&root, devices, &output_directory)?)
     }
