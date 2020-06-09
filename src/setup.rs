@@ -8,10 +8,10 @@ use std::os::unix::process::ExitStatusExt;
 use std::path::Path;
 use std::process::Command;
 
-pub fn run_device_setup(device: Option<Device>, device_name: String) -> Result<()> {
+pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()> {
     let device = device.ok_or_else(|| anyhow!("Device {} not found", device_name))?;
 
-    let device_sysfs_path = Path::new("/sys/block").join(&device_name);
+    let device_sysfs_path = Path::new("/sys/block").join(device_name);
 
     if let Some(compression_algorithm) = device.compression_algorithm {
         let comp_algorithm_path = device_sysfs_path.join("comp_algorithm");
@@ -40,7 +40,7 @@ pub fn run_device_setup(device: Option<Device>, device_name: String) -> Result<(
         )
     })?;
 
-    match Command::new("mkswap").arg(Path::new("/dev").join(&device_name)).status() {
+    match Command::new("mkswap").arg(Path::new("/dev").join(device_name)).status() {
         Ok(status) =>
             match status.code() {
                 Some(0) => Ok(()),

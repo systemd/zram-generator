@@ -34,7 +34,7 @@ fn virtualization_container() -> Result<bool> {
     }
 }
 
-pub fn run_generator(root: &str, devices: Vec<Device>, output_directory: PathBuf) -> Result<()> {
+pub fn run_generator(root: &str, devices: Vec<Device>, output_directory: &PathBuf) -> Result<()> {
     if devices.is_empty() {
         println!("No devices configured, exiting.");
         return Ok(());
@@ -47,11 +47,11 @@ pub fn run_generator(root: &str, devices: Vec<Device>, output_directory: PathBuf
 
     let mut devices_made = false;
     for dev in &devices {
-        devices_made |= handle_device(&output_directory, dev)?;
+        devices_made |= handle_device(output_directory, dev)?;
     }
     if devices_made {
         /* We created some devices, let's make sure the module is loaded and creation service is present */
-        make_service_template(&output_directory)?;
+        make_service_template(output_directory)?;
 
         let modules_load_path = Path::new(&root[..]).join("run/modules-load.d/zram.conf");
         make_parent(&modules_load_path)?;

@@ -1,17 +1,14 @@
 /* SPDX-License-Identifier: MIT */
 
-use crate::generator::run_generator;
-use crate::setup::run_device_setup;
 use anyhow::{anyhow, Context, Result};
 use ini::ini::{Ini, Properties as IniProperties, SectionIntoIter};
 use std::borrow::Cow;
 use std::cmp;
-use std::env;
 use std::fmt;
 use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::iter::FromIterator;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub struct Device {
     pub name: String,
@@ -61,56 +58,10 @@ impl fmt::Display for Device {
     }
 }
 
-pub struct Config {
-    pub module: ModuleConfig,
-}
-
-pub enum ModuleConfig {
-    Generator {
-        devices: Vec<Device>,
-        output_directory: PathBuf,
-    },
-    DeviceSetup {
-        device: Option<Device>,
-        name: String,
-    },
-}
+pub struct Config {}
 
 impl Config {
-    pub fn parse(root: &str) -> Result<Config> {
-        println!("Using {:?} as a root directory", root);
-
-        let mut args = env::args().skip(1);
-        let module = match args.next() {
-            Some(outdir) => match &outdir[..] {
-                "--setup-device" => {
-                    let name = args
-                        .next()
-                        .filter(|dev| &dev[0..4] == "zram")
-                        .ok_or_else(|| anyhow!("--setup-device requires device argument"))?;
-                    ModuleConfig::DeviceSetup {
-                        device: Config::read_device(&root, &name)?,
-                        name,
-                    }
-                }
-                _ => match (args.next(), args.next(), args.next()) {
-                    (Some(_), Some(_), None) | (None, None, None) => {
-                        let devices = Config::read_all_devices(&root)?;
-                        ModuleConfig::Generator {
-                            devices,
-                            output_directory: PathBuf::from(outdir),
-                        }
-                    }
-                    _ => return Err(anyhow!("This program requires 1 or 3 arguments")),
-                },
-            },
-            None => return Err(anyhow!("This program requires 1 or 3 arguments")),
-        };
-
-        Ok(Config { module })
-    }
-
-    fn read_device(root: &str, name: &str) -> Result<Option<Device>> {
+    pub fn read_device(root: &str, name: &str) -> Result<Option<Device>> {
         match Config::read_devices(root)?
             .find(|(section_name, _)| section_name.as_ref().map(String::as_str) == Some(name))
         {
@@ -122,7 +73,7 @@ impl Config {
         }
     }
 
-    fn read_all_devices(root: &str) -> Result<Vec<Device>> {
+    pub fn read_all_devices(root: &str) -> Result<Vec<Device>> {
         let memtotal_mb = get_total_memory_kb(&root)? as f64 / 1024.;
         Result::from_iter(
             Config::read_devices(root)?
@@ -209,16 +160,6 @@ impl Config {
                 }
                 Ok(Some(dev))
             }
-        }
-    }
-
-    pub fn run(self, root: &str) -> Result<()> {
-        match self.module {
-            ModuleConfig::Generator {
-                devices,
-                output_directory,
-            } => run_generator(root, devices, output_directory),
-            ModuleConfig::DeviceSetup { device, name } => run_device_setup(device, name),
         }
     }
 }
