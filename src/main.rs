@@ -8,7 +8,6 @@ use anyhow::{anyhow, Result};
 use std::borrow::Cow;
 use std::env;
 use std::path::{Path, PathBuf};
-use std::process::abort;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -41,7 +40,7 @@ fn main() -> Result<()> {
     let root: Cow<'static, str> = match env::var("ZRAM_GENERATOR_ROOT") {
         Ok(val) => val.into(),
         Err(env::VarError::NotPresent) => "/".into(),
-        Err(_) => abort(),
+        Err(e) => return Err(e.into()),
     };
     let root = Path::new(&root[..]);
 
