@@ -19,13 +19,8 @@ fn make_parent(of: &Path) -> Result<()> {
 
 fn make_symlink(dst: &str, src: &Path) -> Result<()> {
     make_parent(src)?;
-    symlink(dst, src).with_context(|| {
-        format!(
-            "Failed to create symlink at {} (pointing to {})",
-            dst,
-            src.display()
-        )
-    })?;
+    symlink(dst, src)
+        .with_context(|| format!("Failed to create symlink {}→{}", src.display(), dst))?;
     Ok(())
 }
 
