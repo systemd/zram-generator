@@ -58,3 +58,9 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
             }),
     }
 }
+
+pub fn run_device_reset(device_name: &str) -> Result<()> {
+    let reset = Path::new("/sys/block").join(device_name).join("reset");
+    fs::write(reset, b"1")?;
+    Ok(())
+}

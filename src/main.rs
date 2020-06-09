@@ -17,6 +17,10 @@ struct Opts {
     #[structopt(long)]
     setup_device: bool,
 
+    /// Reset (destroy) a device
+    #[structopt(long)]
+    reset_device: bool,
+
     arg: String,
     extra: Vec<String>,
 }
@@ -25,8 +29,20 @@ fn get_opts() -> Result<Opts> {
     let opts = Opts::from_args();
     println!("{:?}", opts);
 
-    if opts.setup_device && !opts.extra.is_empty() {
-        return Err(anyhow!("--setup-device accepts exactly one argument"));
+    if opts.setup_device {
+        if !opts.extra.is_empty() {
+            return Err(anyhow!("--setup-device accepts exactly one argument"));
+        }
+
+        if opts.reset_device {
+            return Err(anyhow!(
+                "--setup-device cannot be combined with --reset-device"
+            ));
+        }
+    }
+
+    if opts.reset_device && !opts.extra.is_empty() {
+        return Err(anyhow!("--reset-device accepts exactly one argument"));
     }
 
     if !opts.setup_device && !opts.extra.is_empty() && opts.extra.len() != 2 {
@@ -49,6 +65,10 @@ fn main() -> Result<()> {
     if opts.setup_device {
         let device = config::read_device(&root, &opts.arg)?;
         Ok(setup::run_device_setup(device, &opts.arg)?)
+    } else if opts.reset_device {
+        // We don't read the config here, so that it's possible to remove a device
+        // even after the config has been removed.
+        Ok(setup::run_device_reset(&opts.arg)?)
     } else {
         let devices = config::read_all_devices(&root)?;
         let output_directory = PathBuf::from(opts.arg);

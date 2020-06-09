@@ -65,6 +65,7 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
         .arg("--recursive")
         .arg("--exclude=.empty")
         .arg("--ignore-matching-lines=ExecStart=/.* --setup-device '%i'")
+        .arg("--ignore-matching-lines=ExecStop=/.* --reset-device '%i'")
         .arg(srcroot.join("run.expected"))
         .arg(root.join("run"))
         .output()?;

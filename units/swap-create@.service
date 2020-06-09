@@ -12,3 +12,4 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStartPre=-modprobe zram
 ExecStart=/usr/lib/systemd/system-generators/zram-generator --setup-device '%i'
+ExecStop=/usr/lib/systemd/system-generators/zram-generator --reset-device '%i'
