@@ -10,30 +10,29 @@ use std::env;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
-#[structopt(about = "Systemd generator for zram swap devices.")]
-struct Opts {
-    /// Set up a single device
-    #[structopt(long)]
-    setup_device: bool,
-
-    arg: String,
-    extra: Vec<String>,
+fn zram_name(name: &str) -> Result<String> {
+    if name.starts_with("zram") {
+        Ok(name.to_owned())
+    } else {
+        Err(anyhow!("device name must start with \"zram\""))
+    }
 }
 
-fn get_opts() -> Result<Opts> {
-    let opts = Opts::from_args();
-    println!("{:?}", opts);
-
-    if opts.setup_device && !opts.extra.is_empty() {
-        return Err(anyhow!("--setup-device accepts exactly one argument"));
-    }
-
-    if !opts.setup_device && !opts.extra.is_empty() && opts.extra.len() != 2 {
-        return Err(anyhow!("This program requires 1 or 3 arguments"));
-    }
-
-    Ok(opts)
+#[derive(Debug, StructOpt)]
+#[structopt(about = "Systemd generator for zram swap devices.")]
+enum Opts {
+    /// Set up a new zram swap device defined in /etc/systemd/zram-generator.conf
+    Setup {
+        /// The name of the ini section the device is defined in
+        #[structopt(parse(try_from_str = zram_name))]
+        name: String,
+    },
+    /// Generate the systemd service file
+    Generate {
+        /// The directory to place generated units
+        #[structopt(parse(from_os_str))]
+        output_directory: PathBuf,
+    },
 }
 
 fn main() -> Result<()> {
@@ -44,18 +43,20 @@ fn main() -> Result<()> {
     };
     let root = Path::new(&root[..]);
 
-    let opts = get_opts()?;
+    let opts = Opts::from_args();
 
-    if opts.setup_device {
-        let device = config::read_device(&root, &opts.arg)?;
-        Ok(setup::run_device_setup(device, &opts.arg)?)
-    } else {
-        let devices = config::read_all_devices(&root)?;
-        let output_directory = PathBuf::from(opts.arg);
-        Ok(generator::run_generator(
-            &root,
-            &devices,
-            &output_directory,
-        )?)
+    match opts {
+        Opts::Setup { name } => {
+            let device = config::read_device(&root, &name)?;
+            Ok(setup::run_device_setup(device, &name)?)
+        }
+        Opts::Generate { output_directory } => {
+            let devices = config::read_all_devices(&root)?;
+            Ok(generator::run_generator(
+                &root,
+                &devices,
+                &output_directory,
+            )?)
+        }
     }
 }
