@@ -1,13 +1,12 @@
 /* SPDX-License-Identifier: MIT */
 
-use anyhow::{anyhow, Context, Result};
 use crate::config::Device;
+use anyhow::{anyhow, Context, Result};
 use std::fs;
 use std::io::ErrorKind;
 use std::os::unix::process::ExitStatusExt;
 use std::path::Path;
 use std::process::Command;
-
 
 pub fn run_device_setup(device: Option<Device>, device_name: String) -> Result<()> {
     let device = device.ok_or_else(|| anyhow!("Device {} not found", device_name))?;
