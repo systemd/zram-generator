@@ -1,14 +1,13 @@
 /* SPDX-License-Identifier: MIT */
 
-use anyhow::{anyhow, Context, Result};
 use crate::config::Device;
+use anyhow::{anyhow, Context, Result};
 use std::borrow::Cow;
 use std::env;
 use std::fs;
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-
 
 fn make_parent(of: &Path) -> Result<()> {
     let parent = of
@@ -41,11 +40,14 @@ fn virtualization_container() -> Result<bool> {
     }
 }
 
-
-pub fn run_generator(root: Cow<'static, str>, devices: Vec<Device>, output_directory: PathBuf) -> Result<()> {
+pub fn run_generator(
+    root: Cow<'static, str>,
+    devices: Vec<Device>,
+    output_directory: PathBuf,
+) -> Result<()> {
     if devices.is_empty() {
-       println!("No devices configured, exiting.");
-       return Ok(());
+        println!("No devices configured, exiting.");
+        return Ok(());
     }
 
     if virtualization_container()? {
@@ -94,7 +96,9 @@ RemainAfterExit=yes
 ExecStartPre=-modprobe zram
 ExecStart={generator} --setup-device '%i'
 ",
-        generator = env::current_exe().context("Couldn't get path to generator executable")?.display(),
+        generator = env::current_exe()
+            .context("Couldn't get path to generator executable")?
+            .display(),
     );
     fs::write(&service_path, contents).with_context(|| {
         format!(
