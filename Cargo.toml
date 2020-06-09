@@ -12,5 +12,8 @@ anyhow = "1"
 rust-ini = "0.13"
 structopt = "0.3"
 
+[dev-dependencies]
+tempfile = "3"
+
 [profile.release]
 lto = true

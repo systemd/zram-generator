@@ -160,9 +160,7 @@ fn parse_device(
     }
 }
 
-fn get_total_memory_kb(root: &str) -> Result<u64> {
-    let path = Path::new(root).join("proc/meminfo");
-
+fn _get_total_memory_kb(path: &Path) -> Result<u64> {
     for line in
         BufReader::new(fs::File::open(&path).with_context(|| {
             format!("Failed to read memory information from {}", path.display())
@@ -179,4 +177,49 @@ fn get_total_memory_kb(root: &str) -> Result<u64> {
     }
 
     Err(anyhow!("Couldn't find MemTotal in {}", path.display()))
+}
+
+fn get_total_memory_kb(root: &str) -> Result<u64> {
+    let path = Path::new(root).join("proc/meminfo");
+    _get_total_memory_kb(&path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_total_memory_kb() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+
+        file.write(
+            b"\
+MemTotal:        8013220 kB
+MemFree:          721288 kB
+MemAvailable:    1740336 kB
+Buffers:          292752 kB
+",
+        )
+        .unwrap();
+        file.flush().unwrap();
+        let mem = _get_total_memory_kb(file.path()).unwrap();
+        assert_eq!(mem, 8013220);
+    }
+
+    #[test]
+    #[should_panic(expected = "Couldn't find MemTotal")]
+    fn test_get_total_memory_not_found() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+
+        file.write(
+            b"\
+MemTotala:        8013220 kB
+aMemTotal:        8013220 kB
+MemTotal::        8013220 kB
+",
+        )
+        .unwrap();
+        file.flush().unwrap();
+        _get_total_memory_kb(file.path()).unwrap();
+    }
 }
