@@ -2,7 +2,6 @@
 
 use crate::config::Device;
 use anyhow::{anyhow, Context, Result};
-use std::borrow::Cow;
 use std::env;
 use std::fs;
 use std::os::unix::fs::symlink;
@@ -19,13 +18,8 @@ fn make_parent(of: &Path) -> Result<()> {
 
 fn make_symlink(dst: &str, src: &Path) -> Result<()> {
     make_parent(src)?;
-    symlink(dst, src).with_context(|| {
-        format!(
-            "Failed to create symlink at {} (pointing to {})",
-            dst,
-            src.display()
-        )
-    })?;
+    symlink(dst, src)
+        .with_context(|| format!("Failed to create symlink {}→{}", src.display(), dst))?;
     Ok(())
 }
 
@@ -40,11 +34,7 @@ fn virtualization_container() -> Result<bool> {
     }
 }
 
-pub fn run_generator(
-    root: Cow<'static, str>,
-    devices: Vec<Device>,
-    output_directory: PathBuf,
-) -> Result<()> {
+pub fn run_generator(root: &Path, devices: &[Device], output_directory: &PathBuf) -> Result<()> {
     if devices.is_empty() {
         println!("No devices configured, exiting.");
         return Ok(());
@@ -56,14 +46,14 @@ pub fn run_generator(
     }
 
     let mut devices_made = false;
-    for dev in &devices {
-        devices_made |= handle_device(&output_directory, dev)?;
+    for dev in devices {
+        devices_made |= handle_device(output_directory, dev)?;
     }
     if devices_made {
         /* We created some devices, let's make sure the module is loaded and creation service is present */
-        make_service_template(&output_directory)?;
+        make_service_template(output_directory)?;
 
-        let modules_load_path = Path::new(&root[..]).join("run/modules-load.d/zram.conf");
+        let modules_load_path = root.join("run/modules-load.d/zram.conf");
         make_parent(&modules_load_path)?;
         fs::write(&modules_load_path, "zram\n").with_context(|| {
             format!(
