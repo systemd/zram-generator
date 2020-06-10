@@ -84,7 +84,7 @@ DefaultDependencies=false
 Type=oneshot
 RemainAfterExit=yes
 ExecStartPre=-modprobe zram
-ExecStart={generator} --setup-device '%i'
+ExecStart={generator} setup '%i'
 ",
         generator = env::current_exe()
             .context("Couldn't get path to generator executable")?

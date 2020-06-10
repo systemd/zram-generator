@@ -64,7 +64,7 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
     let diff = Command::new("diff")
         .arg("--recursive")
         .arg("--exclude=.empty")
-        .arg("--ignore-matching-lines=ExecStart=/.* --setup-device '%i'")
+        .arg("--ignore-matching-lines=ExecStart=/.* setup '%i'")
         .arg(srcroot.join("run.expected"))
         .arg(root.join("run"))
         .output()?;

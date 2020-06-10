@@ -11,4 +11,4 @@ DefaultDependencies=false
 Type=oneshot
 RemainAfterExit=yes
 ExecStartPre=-modprobe zram
-ExecStart=/path/to/zram-generator --setup-device '%i'
+ExecStart=/path/to/zram-generator setup '%i'
