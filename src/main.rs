@@ -29,9 +29,17 @@ enum Opts {
     },
     /// Generate the systemd service file
     Generate {
-        /// The directory to place generated units
+        /// The normal directory to place generated units
         #[structopt(parse(from_os_str))]
-        output_directory: PathBuf,
+        normal_directory: PathBuf,
+        /// The early directory for generated units which take precedence over all normal units;
+        /// if provided, <late-directory> must also be provided.
+        #[structopt(parse(from_os_str))]
+        early_directory: Option<PathBuf>,
+        /// The late directory for generated units which do not override any other units;
+        /// if provided, <early-directory> must also be provided.
+        #[structopt(parse(from_os_str))]
+        late_directory: Option<PathBuf>,
     },
 }
 
@@ -50,12 +58,21 @@ fn main() -> Result<()> {
             let device = config::read_device(&root, &name)?;
             Ok(setup::run_device_setup(device, &name)?)
         }
-        Opts::Generate { output_directory } => {
+        Opts::Generate {
+            normal_directory,
+            early_directory,
+            late_directory,
+        } => {
+            if early_directory.xor(late_directory) != None {
+                return Err(anyhow!(
+                    "both <early-directory> and <late-directory> must be provided, or neither one"
+                ));
+            }
             let devices = config::read_all_devices(&root)?;
             Ok(generator::run_generator(
                 &root,
                 &devices,
-                &output_directory,
+                &normal_directory,
             )?)
         }
     }
