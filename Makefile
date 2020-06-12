@@ -1,5 +1,5 @@
-INSTALL_PROGRAM = install
-CARGO_PROGRAM = cargo
+INSTALL = install
+CARGO = cargo
 PREFIX = /usr
 SYSTEMD_DIR ?= $(PREFIX)/lib/systemd
 
@@ -7,15 +7,15 @@ SYSTEMD_DIR ?= $(PREFIX)/lib/systemd
 .PHONY: build check clean install
 
 build:
-	@$(CARGO_PROGRAM) build --release
+	@$(CARGO) build --release
 
 check: build
-	@$(CARGO_PROGRAM) test --release
+	@$(CARGO) test --release
 
 clean:
-	@$(CARGO_PROGRAM) clean
+	@$(CARGO) clean
 
 install: build
-	$(INSTALL_PROGRAM) -Dm755 target/release/zram-generator $(DESTDIR)$(SYSTEMD_DIR)/system-generators/zram-generator
-	$(INSTALL_PROGRAM) -Dm644 units/swap-create@.service $(DESTDIR)$(SYSTEMD_DIR)/system/swap-create@.service
-	$(INSTALL_PROGRAM) -Dm644 zram-generator.conf.example $(DESTDIR)$(PREFIX)/share/doc/zram-generator/zram-generator.conf.example
+	$(INSTALL) -Dpm755 target/release/zram-generator $(DESTDIR)$(SYSTEMD_DIR)/system-generators/zram-generator
+	$(INSTALL) -Dpm644 units/swap-create@.service $(DESTDIR)$(SYSTEMD_DIR)/system/swap-create@.service
+	$(INSTALL) -Dpm644 zram-generator.conf.example $(DESTDIR)$(PREFIX)/share/doc/zram-generator/zram-generator.conf.example

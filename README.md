@@ -30,10 +30,10 @@ Executing `make install` will create the following things:
 * `zram-generator.conf.example` copied into `/usr/share/doc/zram-generator/`
 You need though create your own config file at `/etc/systemd/zram-generator.conf`, customising it to your liking.
 
-The "{generator}" template in `units/swap-create@.service.d/binary-location.conf`
-can be substituted for a non-standard location of the binary for testing.
-
 ### Testing
 
 Set the `ZRAM_GENERATOR_ROOT` environment variable to use that
 instead of `/` as root.
+
+The "{generator}" template in `units/swap-create@.service.d/binary-location.conf`
+can be substituted for a non-standard location of the binary for testing.
