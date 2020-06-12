@@ -24,9 +24,11 @@ This program serves two purposes:
 
 ### Installation
 
-Copy the `zram-generator` binary  into `/usr/lib/systemd/system-generators/`,
-    `units/swap-create@.service`  into `/usr/lib/systemd/system/`,
-and `zram-generator.conf.example` into `/etc/systemd/zram-generator.conf`, customising it to your liking.
+Executing `make install` will create the following things:
+* Generator binary installed as `/usr/lib/systemd/system-generators/zram-generator`
+* `units/swap-create@.service` copied into `/usr/lib/systemd/system/`
+* `zram-generator.conf.example` copied into `/usr/share/doc/zram-generator/`
+You need though create your own config file at `/etc/systemd/zram-generator.conf`, customising it to your liking.
 
 The "{generator}" template in `units/swap-create@.service.d/binary-location.conf`
 can be substituted for a non-standard location of the binary for testing.
