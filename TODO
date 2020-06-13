@@ -1,3 +1,2 @@
 - logging in generators needs to go to kmsg, println!() is not enough.
-- make swap priority configurable?
 - read configuration also from /usr/lib?
