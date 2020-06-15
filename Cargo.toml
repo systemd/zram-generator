@@ -3,14 +3,14 @@ name = "zram-generator"
 version = "0.1.2"
 authors = ["Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl>"]
 license = "MIT"
-description = "Systemd unit generator for zram devices"
+description = "Systemd unit generator for zram swap devices"
 homepage = "https://github.com/systemd/zram-generator"
 edition = "2018"
 
 [dependencies]
 anyhow = "1"
+clap = "2.33"
 rust-ini = "0.13"
-structopt = "0.3"
 
 [dev-dependencies]
 tempfile = "3"
