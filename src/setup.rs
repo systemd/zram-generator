@@ -40,7 +40,7 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
         )
     })?;
 
-    match Command::new("mkswap").arg(Path::new("/dev").join(device_name)).status() {
+    match Command::new("/usr/lib/systemd/systemd-makefs").arg("swap").arg(Path::new("/dev").join(device_name)).status() {
         Ok(status) =>
             match status.code() {
                 Some(0) => Ok(()),
