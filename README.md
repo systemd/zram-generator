@@ -10,12 +10,11 @@ This program serves two purposes:
    ```ini
    # /etc/systemd/zram-generator.conf
    [zram0]
-   memory-limit = 2048
-   zram-fraction = 0.25
+   zram-fraction = 0.5
    ```
 
    A zram device will be created for each section. No actual
-   configuration is necessary (the defaults of 2048 and 0.25 will be
+   configuration is necessary (the default zram-fraction=0.5 will be
    used unless overriden), but the configuration file with at least
    one section must exist.
 

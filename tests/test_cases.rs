@@ -39,15 +39,15 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
         "01-basic" => {
             assert_eq!(devices.len(), 1);
             let d = devices.iter().next().unwrap();
-            assert_eq!(d.host_memory_limit_mb.unwrap(), 2048);
-            assert_eq!(d.zram_fraction, 0.25);
+            assert_eq!(d.host_memory_limit_mb, None);
+            assert_eq!(d.zram_fraction, 0.5);
         }
 
         "02-zstd" => {
             assert_eq!(devices.len(), 1);
             let d = devices.iter().next().unwrap();
             assert_eq!(d.host_memory_limit_mb.unwrap(), 2050);
-            assert_eq!(d.zram_fraction, 0.5);
+            assert_eq!(d.zram_fraction, 0.75);
             assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
         }
 

@@ -23,8 +23,8 @@ impl Device {
     fn new(name: String) -> Device {
         Device {
             name,
-            host_memory_limit_mb: Some(2 * 1024),
-            zram_fraction: 0.25,
+            host_memory_limit_mb: None,
+            zram_fraction: 0.5,
             max_zram_size_mb: Some(4 * 1024),
             compression_algorithm: None,
             disksize: 0,
