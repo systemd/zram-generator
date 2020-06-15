@@ -5,7 +5,7 @@ use anyhow::{anyhow, Context, Result};
 use std::fs;
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 fn make_parent(of: &Path) -> Result<()> {
     let parent = of
@@ -24,8 +24,8 @@ fn make_symlink(dst: &str, src: &Path) -> Result<()> {
 
 fn virtualization_container() -> Result<bool> {
     match Command::new("systemd-detect-virt")
+        .arg("--quiet")
         .arg("--container")
-        .stdout(Stdio::null())
         .status()
     {
         Ok(status) => Ok(status.success()),
