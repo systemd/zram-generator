@@ -9,7 +9,7 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1"
-clap = "2.33"
+clap = { version = "2.33", default-features = false }
 rust-ini = "0.13"
 
 [dev-dependencies]
