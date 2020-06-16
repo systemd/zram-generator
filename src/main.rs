@@ -4,36 +4,53 @@ mod config;
 mod generator;
 mod setup;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
+use clap::{app_from_crate, crate_authors, crate_description, crate_name, crate_version, Arg};
 use std::borrow::Cow;
 use std::env;
 use std::path::{Path, PathBuf};
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
-#[structopt(about = "Systemd generator for zram swap devices.")]
-struct Opts {
+#[derive(Debug)]
+enum Opts {
+    /// Generate units into the directory
+    GenerateUnits(String),
     /// Set up a single device
-    #[structopt(long)]
-    setup_device: bool,
-
-    arg: String,
-    extra: Vec<String>,
+    SetupDevice(String),
+    /// Reset (destroy) a device
+    ResetDevice(String),
 }
 
-fn get_opts() -> Result<Opts> {
-    let opts = Opts::from_args();
-    println!("{:?}", opts);
+fn get_opts() -> Opts {
+    #[allow(deprecated)]
+    let opts = app_from_crate!("\n")
+        .arg(
+            Arg::from_usage("--setup-device 'Set up a single device'")
+                .conflicts_with("reset-device"),
+        )
+        .arg(Arg::from_usage("--reset-device 'Reset (destroy) a device'"))
+        .arg(Arg::from_usage(
+            "<directory/device> 'Target directory for generator or device to operate on'",
+        ))
+        .arg(
+            Arg::from_usage(
+                "[extra-dir] 'Unused target directories to satisfy systemd.generator(5)'",
+            )
+            .number_of_values(2)
+            .conflicts_with_all(&["setup-device", "reset-device"]),
+        )
+        .get_matches();
 
-    if opts.setup_device && !opts.extra.is_empty() {
-        return Err(anyhow!("--setup-device accepts exactly one argument"));
+    let val = opts
+        .value_of("directory/device")
+        .expect("clap invariant")
+        .to_string();
+    if opts.is_present("setup-device") {
+        Opts::SetupDevice(val)
+    } else if opts.is_present("reset-device") {
+        Opts::ResetDevice(val)
+    } else {
+        Opts::GenerateUnits(val)
     }
-
-    if !opts.setup_device && !opts.extra.is_empty() && opts.extra.len() != 2 {
-        return Err(anyhow!("This program requires 1 or 3 arguments"));
-    }
-
-    Ok(opts)
 }
 
 fn main() -> Result<()> {
@@ -44,18 +61,20 @@ fn main() -> Result<()> {
     };
     let root = Path::new(&root[..]);
 
-    let opts = get_opts()?;
-
-    if opts.setup_device {
-        let device = config::read_device(&root, &opts.arg)?;
-        Ok(setup::run_device_setup(device, &opts.arg)?)
-    } else {
-        let devices = config::read_all_devices(&root)?;
-        let output_directory = PathBuf::from(opts.arg);
-        Ok(generator::run_generator(
-            &root,
-            &devices,
-            &output_directory,
-        )?)
+    match get_opts() {
+        Opts::GenerateUnits(target) => {
+            let devices = config::read_all_devices(&root)?;
+            let output_directory = PathBuf::from(target);
+            generator::run_generator(&root, &devices, &output_directory)
+        }
+        Opts::SetupDevice(dev) => {
+            let device = config::read_device(&root, &dev)?;
+            setup::run_device_setup(device, &dev)
+        }
+        Opts::ResetDevice(dev) => {
+            // We don't read the config here, so that it's possible to remove a device
+            // even after the config has been removed.
+            setup::run_device_reset(&dev)
+        }
     }
 }
