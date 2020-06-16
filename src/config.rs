@@ -3,6 +3,7 @@
 use anyhow::{anyhow, Context, Result};
 use ini::Ini;
 use liboverdrop::FragmentScanner;
+use log::{info, warn};
 use std::cmp;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
@@ -45,7 +46,7 @@ impl Device {
     fn is_enabled(&self, memtotal_mb: u64) -> bool {
         match self.host_memory_limit_mb {
             Some(limit_mb) if limit_mb < memtotal_mb => {
-                println!(
+                info!(
                     "{}: system has too much memory ({:.1}MB), limit is {}MB, ignoring.",
                     self.name,
                     memtotal_mb,
@@ -106,7 +107,7 @@ fn read_devices(root: &Path, memtotal_mb: u64) -> Result<HashMap<String, Device>
     let fragments = locate_fragments(root);
 
     if fragments.is_empty() {
-        println!("No configuration file found.");
+        info!("No configuration file found.");
     }
 
     let mut devices: HashMap<String, Device> = HashMap::new();
@@ -117,9 +118,10 @@ fn read_devices(root: &Path, memtotal_mb: u64) -> Result<HashMap<String, Device>
         for (sname, props) in ini.iter() {
             let sname = match sname {
                 None => {
-                    eprintln!(
-                        "{:?}: ignoring settings outside of section: {:?}",
-                        path, props
+                    warn!(
+                        "{}: ignoring settings outside of section: {:?}",
+                        path.display(),
+                        props
                     );
                     continue;
                 }
@@ -127,7 +129,7 @@ fn read_devices(root: &Path, memtotal_mb: u64) -> Result<HashMap<String, Device>
                     sname.to_string()
                 }
                 Some(sname) => {
-                    println!("Ignoring section \"{}\"", sname);
+                    warn!("{}: Ignoring section \"{}\"", path.display(), sname);
                     continue;
                 }
             };
@@ -219,7 +221,7 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
         }
 
         _ => {
-            eprintln!("Unknown key {}, ignoring.", key);
+            warn!("Unknown key {}, ignoring.", key);
         }
     }
 
