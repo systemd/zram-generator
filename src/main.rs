@@ -6,6 +6,7 @@ mod setup;
 
 use anyhow::Result;
 use clap::{app_from_crate, crate_authors, crate_description, crate_name, crate_version, Arg};
+use log::warn;
 use std::borrow::Cow;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -54,12 +55,17 @@ fn get_opts() -> Opts {
 }
 
 fn main() -> Result<()> {
-    let (root, have_env_var): (Cow<'static, str>, bool) = match env::var("ZRAM_GENERATOR_ROOT") {
-        Ok(val) => (val.into(), true),
-        Err(env::VarError::NotPresent) => ("/".into(), false),
+    let (root, have_env_var, log_level) = match env::var("ZRAM_GENERATOR_ROOT") {
+        Ok(val) => (val.into(), true, log::LevelFilter::Trace),
+        Err(env::VarError::NotPresent) => (Cow::from("/"), false, log::LevelFilter::Info),
         Err(e) => return Err(e.into()),
     };
     let root = Path::new(&root[..]);
+
+    let _ = kernlog::init_with_level(log_level).or_else(|e| {
+        simplelog::SimpleLogger::init(simplelog::LevelFilter::max(), Default::default())
+            .map(|()| warn!("Couldn't initialise /dev/kmsg logger: {:?}", e))
+    });
 
     match get_opts() {
         Opts::GenerateUnits(target) => {

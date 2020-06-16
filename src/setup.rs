@@ -2,6 +2,7 @@
 
 use crate::config::Device;
 use anyhow::{anyhow, Context, Result};
+use log::warn;
 use std::fs;
 use std::io::ErrorKind;
 use std::os::unix::process::ExitStatusExt;
@@ -18,7 +19,7 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
         match fs::write(&comp_algorithm_path, &compression_algorithm) {
             Ok(_) => {}
             Err(err) if err.kind() == ErrorKind::InvalidInput => {
-                println!(
+                warn!(
                     "Warning: algorithm {:?} not recognised; consult {} for a list of available ones",
                     compression_algorithm, comp_algorithm_path.display(),
                 );
