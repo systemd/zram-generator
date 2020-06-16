@@ -2,9 +2,11 @@
 
 use crate::config::Device;
 use anyhow::{anyhow, Context, Result};
+use std::cmp;
 use std::fs;
+use std::iter::FromIterator;
 use std::os::unix::fs::symlink;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 
 fn make_parent(of: &Path) -> Result<()> {
@@ -33,7 +35,7 @@ fn virtualization_container() -> Result<bool> {
     }
 }
 
-pub fn run_generator(root: &Path, devices: &[Device], output_directory: &PathBuf) -> Result<()> {
+pub fn run_generator(devices: &[Device], output_directory: &Path) -> Result<()> {
     if devices.is_empty() {
         println!("No devices configured, exiting.");
         return Ok(());
@@ -44,26 +46,39 @@ pub fn run_generator(root: &Path, devices: &[Device], output_directory: &PathBuf
         return Ok(());
     }
 
-    let mut devices_made = false;
-    for dev in devices {
-        devices_made |= handle_device(output_directory, dev)?;
-    }
-    if devices_made {
-        /* We created some devices, let's make sure the module is loaded */
-        let modules_load_path = root.join("run/modules-load.d/zram-generator.conf");
-        make_parent(&modules_load_path)?;
-        fs::write(&modules_load_path, "zram\n").with_context(|| {
-            format!(
-                "Failed to write configuration for loading a module at {}",
-                modules_load_path.display()
-            )
-        })?;
+    let devices_made: Vec<_> = Result::from_iter(
+        devices
+            .iter()
+            .map(|dev| handle_device(output_directory, dev)),
+    )?;
+    if !devices_made.is_empty() {
+        /* We created some devices, let's make sure the module is loaded and they exist */
+        if !Path::new("/sys/class/zram-control").exists() {
+            Command::new("modprobe")
+                .arg("zram")
+                .status()
+                .context("modprobe call failed")?;
+        }
+
+        let max_device = devices_made.into_iter().fold(0, cmp::max);
+        if !Path::new("/dev")
+            .join(format!("zram{}", max_device))
+            .exists()
+        {
+            while fs::read_to_string("/sys/class/zram-control/hot_add")
+                .context("Adding zram device")?
+                .trim_end()
+                .parse::<u64>()
+                .context("Fresh zram device number")?
+                < max_device
+            {}
+        }
     }
 
     Ok(())
 }
 
-fn handle_device(output_directory: &Path, device: &Device) -> Result<bool> {
+fn handle_device(output_directory: &Path, device: &Device) -> Result<u64> {
     let swap_name = format!("dev-{}.swap", device.name);
     println!(
         "Creating {} for /dev/{} ({}MB)",
@@ -99,5 +114,8 @@ Priority=100
     let symlink_path = output_directory.join("swap.target.wants").join(&swap_name);
     let target_path = format!("../{}", swap_name);
     make_symlink(&target_path, &symlink_path)?;
-    Ok(true)
+
+    device.name[4..]
+        .parse()
+        .with_context(|| format!("zram device \"{}\" number", device.name))
 }

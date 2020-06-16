@@ -31,6 +31,8 @@ You need though create your own config file at `/etc/systemd/zram-generator.conf
 
 ### Testing
 
+The tests require either the `zram` module to be loaded, or root to run `modprobe zram`.
+
 Set the `ZRAM_GENERATOR_ROOT` environment variable to use that
 instead of `/` as root.
 

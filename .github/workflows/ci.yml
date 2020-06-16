@@ -33,6 +33,8 @@ jobs:
         with:
           command: build
           args: --verbose
+      - name: Insert zram module
+        run: sudo modprobe -v zram
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
