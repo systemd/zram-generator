@@ -1,8 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 
 use anyhow::{anyhow, Context, Result};
-use ini::ini::{Ini, Properties as IniProperties, SectionIntoIter};
-use std::borrow::Cow;
+use ini::Ini;
 use std::cmp;
 use std::fmt;
 use std::fs;
@@ -59,37 +58,36 @@ impl fmt::Display for Device {
 }
 
 pub fn read_device(root: &Path, name: &str) -> Result<Option<Device>> {
-    match read_devices(root)?
-        .find(|(section_name, _)| section_name.as_ref().map(String::as_str) == Some(name))
-    {
-        Some((section_name, section)) => {
+    for (section, properties) in read_devices(root)?.into_iter() {
+        if section.is_some() && section.unwrap() == name {
             let memtotal_mb = get_total_memory_kb(root)? as f64 / 1024.;
-            parse_device(section_name, section, memtotal_mb)
+            return parse_device(section, properties, memtotal_mb);
         }
-        None => Ok(None),
     }
+
+    Ok(None)
 }
 
 pub fn read_all_devices(root: &Path) -> Result<Vec<Device>> {
     let memtotal_mb = get_total_memory_kb(&root)? as f64 / 1024.;
     Result::from_iter(
         read_devices(root)?
+            .into_iter()
             .map(|(sn, s)| parse_device(sn, s, memtotal_mb))
             .map(Result::transpose)
             .flatten(),
     )
 }
 
-fn read_devices(root: &Path) -> Result<SectionIntoIter> {
+fn read_devices(root: &Path) -> Result<Ini> {
     let path = root.join("etc/systemd/zram-generator.conf");
     if !path.exists() {
         println!("No configuration file found.");
-        return Ok(Ini::new().into_iter());
+        return Ok(Ini::new());
     }
 
     Ok(Ini::load_from_file(&path)
-        .with_context(|| format!("Failed to read configuration from {}", path.display(),))?
-        .into_iter())
+        .with_context(|| format!("Failed to read configuration from {}", path.display(),))?)
 }
 
 fn parse_optional_size(val: &str) -> Result<Option<u64>> {
@@ -104,20 +102,18 @@ fn parse_optional_size(val: &str) -> Result<Option<u64>> {
 }
 
 fn parse_device(
-    section_name: Option<String>,
-    mut section: IniProperties,
+    section_name: Option<&str>,
+    section: &ini::ini::Properties,
     memtotal_mb: f64,
 ) -> Result<Option<Device>> {
-    let section_name = section_name
-        .map(Cow::Owned)
-        .unwrap_or(Cow::Borrowed("(no title)"));
+    let section_name = section_name.unwrap_or("(no section)");
 
     if !section_name.starts_with("zram") {
         println!("Ignoring section \"{}\"", section_name);
         return Ok(None);
     }
 
-    let mut dev = Device::new(section_name.into_owned());
+    let mut dev = Device::new(String::from(section_name));
 
     if let Some(val) = section.get("host-memory-limit") {
         dev.host_memory_limit_mb = parse_optional_size(val)?;
@@ -136,8 +132,8 @@ fn parse_device(
         dev.max_zram_size_mb = parse_optional_size(val)?;
     }
 
-    if let Some((_, val)) = section.remove_entry("compression-algorithm") {
-        dev.compression_algorithm = Some(val);
+    if let Some(val) = section.get("compression-algorithm") {
+        dev.compression_algorithm = Some(val.to_string());
     }
 
     println!("Found configuration for {}", dev);

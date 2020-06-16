@@ -10,7 +10,7 @@ edition = "2018"
 [dependencies]
 anyhow = "1"
 clap = { version = "2.33", default-features = false }
-rust-ini = "0.13"
+rust-ini = "0.15"
 
 [dev-dependencies]
 tempfile = "3"
