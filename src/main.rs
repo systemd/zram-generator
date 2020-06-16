@@ -65,7 +65,7 @@ fn main() -> Result<()> {
         Opts::GenerateUnits(target) => {
             let devices = config::read_all_devices(&root)?;
             let output_directory = PathBuf::from(target);
-            generator::run_generator(&root, &devices, &output_directory)
+            generator::run_generator(&devices, &output_directory)
         }
         Opts::SetupDevice(dev) => {
             let device = config::read_device(&root, &dev)?;
