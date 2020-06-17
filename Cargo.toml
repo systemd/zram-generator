@@ -11,7 +11,7 @@ edition = "2018"
 anyhow = "1"
 clap = { version = "2.33", default-features = false }
 liboverdrop = "0.0.2"
-rust-ini = "0.15"
+rust-ini = ">=0.13, <0.16"
 
 [dev-dependencies]
 tempfile = "3"
