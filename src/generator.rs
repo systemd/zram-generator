@@ -35,13 +35,13 @@ fn virtualization_container() -> Result<bool> {
     }
 }
 
-pub fn run_generator(devices: &[Device], output_directory: &Path) -> Result<()> {
+pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: bool) -> Result<()> {
     if devices.is_empty() {
         println!("No devices configured, exiting.");
         return Ok(());
     }
 
-    if virtualization_container()? {
+    if virtualization_container()? && !fake_mode {
         println!("Running in a container, exiting.");
         return Ok(());
     }
@@ -51,7 +51,7 @@ pub fn run_generator(devices: &[Device], output_directory: &Path) -> Result<()> 
             .iter()
             .map(|dev| handle_device(output_directory, dev)),
     )?;
-    if !devices_made.is_empty() {
+    if !devices_made.is_empty() && !fake_mode {
         /* We created some devices, let's make sure the module is loaded and they exist */
         if !Path::new("/sys/class/zram-control").exists() {
             Command::new("modprobe")

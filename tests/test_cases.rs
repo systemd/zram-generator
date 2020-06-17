@@ -32,7 +32,7 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
     let devices = config::read_all_devices(root)?;
 
     let output_directory = root.join("run/units");
-    generator::run_generator(&devices, &output_directory)?;
+    generator::run_generator(&devices, &output_directory, true)?;
 
     match name {
         "01-basic" => {
