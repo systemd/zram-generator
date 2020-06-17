@@ -25,11 +25,19 @@ fn make_symlink(dst: &str, src: &Path) -> Result<()> {
 }
 
 fn virtualization_container() -> Result<bool> {
-    match Command::new("systemd-detect-virt")
+    let mut child = match Command::new("systemd-detect-virt")
         .arg("--quiet")
         .arg("--container")
-        .status()
+        .spawn()
     {
+        Ok(child) => child,
+        Err(e) => {
+            eprintln!("systemd-dect-virt call failed, assuming we're not in a container: {}", e);
+            return Ok(false);
+        }
+    };
+
+    match child.wait() {
         Ok(status) => Ok(status.success()),
         Err(e) => Err(anyhow!("systemd-detect-virt call failed: {}", e)),
     }
