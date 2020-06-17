@@ -1,25 +1,44 @@
 # `swap-create@.service` generator for zram devices
 
-This program serves two purposes:
+This generator provides a simple and fast mechanism to configure swap on `/dev/zram*` devices.
 
-1. It is a simple and fast mechanism to configure `/dev/zram*` devices
-   if the system has a small amount of memory.
+Create `/etc/systemd/zram-generator.conf`:
 
-   To create a zram device, create `/etc/systemd/zram-generator.conf`
+```ini
+# /etc/systemd/zram-generator.conf
+[zram0]
+zram-fraction = 0.5
+```
 
-   ```ini
-   # /etc/systemd/zram-generator.conf
-   [zram0]
-   zram-fraction = 0.5
-   ```
+A zram device will be created for each section. No actual
+configuration is necessary (the default of zram-fraction=0.5 will be
+used unless overriden), but the configuration file with at least one
+section must exist.
 
-   A zram device will be created for each section. No actual
-   configuration is necessary (the default zram-fraction=0.5 will be
-   used unless overriden), but the configuration file with at least
-   one section must exist.
+A default config file may be located in /usr.
+This generator checks the following locations:
+* `/run/systemd/zram-generator.conf`
+* `/etc/systemd/zram-generator.conf`
+* `/usr/local/lib/systemd/zram-generator.conf`
+* `/usr/lib/systemd/zram-generator.conf`
 
-2. Once we figure out all the details, it should be useful as an
-   example of a systemd generator in rust.
+… and the first file found in that list wins.
+
+In addition, "drop-ins" will be loaded from `.conf` files in
+`/etc/systemd/zram-generator.conf.d/`,
+`/usr/lib/systemd/zram-generator.conf.d/`, etc.
+
+The main configuration file is read before any of the drop-ins and has
+the lowest precedence; entries in the drop-in files override entries
+in the main configuration file.
+
+See systemd.unit(5) for a detailed description of this logic.
+
+See `zram-generator.conf.example` for a list of available settings.
+
+
+The second purpose of this program is to serve as an example of a
+systemd generator in rust. Details are still being figured out.
 
 ### Installation
 
@@ -27,7 +46,7 @@ Executing `make install` will create the following things:
 * Generator binary installed as `/usr/lib/systemd/system-generators/zram-generator`
 * `units/swap-create@.service` copied into `/usr/lib/systemd/system/`
 * `zram-generator.conf.example` copied into `/usr/share/doc/zram-generator/`
-You need though create your own config file at `/etc/systemd/zram-generator.conf`, customising it to your liking.
+You need though create your own config file at one of the locations listed above.
 
 ### Testing
 

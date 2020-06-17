@@ -10,10 +10,12 @@ edition = "2018"
 [dependencies]
 anyhow = "1"
 clap = { version = "2.33", default-features = false }
+liboverdrop = "0.0.2"
 rust-ini = "0.15"
 
 [dev-dependencies]
 tempfile = "3"
+fs_extra = "1.1"
 
 [profile.release]
 lto = true
