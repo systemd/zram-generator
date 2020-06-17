@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::fs;
 use std::io::{prelude::*, BufReader};
+use std::mem;
 use std::path::{Path, PathBuf};
 
 pub struct Device {
@@ -149,17 +150,21 @@ fn read_devices(root: &Path, memtotal_mb: u64) -> Result<HashMap<String, Device>
 }
 
 fn locate_fragments(root: &Path) -> BTreeMap<String, PathBuf> {
-    let base_dirs = vec![
-        String::from(root.join("usr/lib").to_str().unwrap()),
-        String::from(root.join("usr/local/lib").to_str().unwrap()),
-        String::from(root.join("etc").to_str().unwrap()),
-        String::from(root.join("run").to_str().unwrap()), // We look at /run to allow temporary overriding
-                                                          // of configuration. There is no expectation of
-                                                          // programatic creation of config there.
+    let mut base_dirs = [
+        root.join("usr/lib"),
+        root.join("usr/local/lib"),
+        root.join("etc"),
+        root.join("run"), // We look at /run to allow temporary overriding
+                          // of configuration. There is no expectation of
+                          // programatic creation of config there.
     ];
 
     let cfg = FragmentScanner::new(
-        base_dirs.clone(),
+        base_dirs
+            .iter()
+            .cloned()
+            .map(|pb| pb.into_os_string().into_string().unwrap())
+            .collect(),
         "systemd/zram-generator.conf.d",
         true,
         vec![String::from("conf")],
@@ -167,10 +172,10 @@ fn locate_fragments(root: &Path) -> BTreeMap<String, PathBuf> {
 
     let mut fragments = cfg.scan();
 
-    for dir in base_dirs.iter().rev() {
-        let path = PathBuf::from(dir).join("systemd/zram-generator.conf");
+    for path in base_dirs.iter_mut().rev() {
+        path.push("systemd/zram-generator.conf");
         if path.exists() {
-            fragments.insert("".to_string(), path); // The empty string shall sort earliest
+            fragments.insert("".to_string(), mem::replace(path, PathBuf::new())); // The empty string shall sort earliest
             break;
         }
     }
