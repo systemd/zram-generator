@@ -87,7 +87,7 @@ impl fmt::Display for Device {
 
 pub fn read_device(root: &Path, name: &str) -> Result<Option<Device>> {
     let memtotal_mb = (get_total_memory_kb(&root)? as f64 / 1024.) as u64;
-    return Ok(read_devices(root, memtotal_mb)?.remove(name));
+    Ok(read_devices(root, memtotal_mb)?.remove(name))
 }
 
 pub fn read_all_devices(root: &Path) -> Result<Vec<Device>> {
@@ -141,7 +141,7 @@ fn read_devices(root: &Path, memtotal_mb: u64) -> Result<HashMap<String, Device>
         }
     }
 
-    for (_, dev) in &mut devices {
+    for dev in devices.values_mut() {
         dev.set_disksize_if_enabled(memtotal_mb);
     }
 
