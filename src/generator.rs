@@ -25,23 +25,31 @@ fn make_symlink(dst: &str, src: &Path) -> Result<()> {
 }
 
 fn virtualization_container() -> Result<bool> {
-    match Command::new("systemd-detect-virt")
+    let mut child = match Command::new("systemd-detect-virt")
         .arg("--quiet")
         .arg("--container")
-        .status()
+        .spawn()
     {
+        Ok(child) => child,
+        Err(e) => {
+            eprintln!("systemd-dect-virt call failed, assuming we're not in a container: {}", e);
+            return Ok(false);
+        }
+    };
+
+    match child.wait() {
         Ok(status) => Ok(status.success()),
         Err(e) => Err(anyhow!("systemd-detect-virt call failed: {}", e)),
     }
 }
 
-pub fn run_generator(devices: &[Device], output_directory: &Path) -> Result<()> {
+pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: bool) -> Result<()> {
     if devices.is_empty() {
         println!("No devices configured, exiting.");
         return Ok(());
     }
 
-    if virtualization_container()? {
+    if virtualization_container()? && !fake_mode {
         println!("Running in a container, exiting.");
         return Ok(());
     }
@@ -51,7 +59,7 @@ pub fn run_generator(devices: &[Device], output_directory: &Path) -> Result<()> 
             .iter()
             .map(|dev| handle_device(output_directory, dev)),
     )?;
-    if !devices_made.is_empty() {
+    if !devices_made.is_empty() && !fake_mode {
         /* We created some devices, let's make sure the module is loaded and they exist */
         if !Path::new("/sys/class/zram-control").exists() {
             Command::new("modprobe")
