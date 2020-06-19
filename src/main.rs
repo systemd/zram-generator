@@ -54,14 +54,9 @@ fn get_opts() -> Opts {
 }
 
 fn main() -> Result<()> {
-    let mut have_env_var = false;
-
-    let root: Cow<'static, str> = match env::var("ZRAM_GENERATOR_ROOT") {
-        Ok(val) => {
-            have_env_var = true;
-            val.into()
-        }
-        Err(env::VarError::NotPresent) => "/".into(),
+    let (root, have_env_var): (Cow<'static, str>, bool) = match env::var("ZRAM_GENERATOR_ROOT") {
+        Ok(val) => (val.into(), true),
+        Err(env::VarError::NotPresent) => ("/".into(), false),
         Err(e) => return Err(e.into()),
     };
     let root = Path::new(&root[..]);
