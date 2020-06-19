@@ -2,7 +2,9 @@
 
 [Unit]
 Description=Create swap on /dev/%i
+Documentation=man:zram-generator(8) man:zram-generator.conf(5)
 After=dev-%i.device
+BindsTo=dev-%i.swap
 DefaultDependencies=false
 
 [Service]

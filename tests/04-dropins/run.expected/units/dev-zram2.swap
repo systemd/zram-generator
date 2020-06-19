@@ -2,6 +2,7 @@
 
 [Unit]
 Description=Compressed swap on /dev/zram2
+Documentation=man:zram-generator(8) man:zram-generator.conf(5)
 Requires=swap-create@zram2.service
 After=swap-create@zram2.service
 

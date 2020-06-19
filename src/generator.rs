@@ -106,6 +106,7 @@ fn handle_device(output_directory: &Path, device: &Device) -> Result<u64> {
 
 [Unit]
 Description=Compressed swap on /dev/{zram_device}
+Documentation=man:zram-generator(8) man:zram-generator.conf(5)
 Requires=swap-create@{zram_device}.service
 After=swap-create@{zram_device}.service
 
