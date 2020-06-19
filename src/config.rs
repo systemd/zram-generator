@@ -200,7 +200,14 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
         "zram-fraction" => {
             dev.zram_fraction = value
                 .parse()
-                .with_context(|| format!("Failed to parse zram-fraction \"{}\"", value))?;
+                .with_context(|| format!("Failed to parse zram-fraction \"{}\"", value))
+                .and_then(|f| {
+                    if f >= 0. {
+                        Ok(f)
+                    } else {
+                        Err(anyhow!("zram-fraction {} < 0", f))
+                    }
+                })?;
         }
 
         "max-zram-size" => {
