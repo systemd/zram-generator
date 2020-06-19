@@ -32,7 +32,10 @@ fn virtualization_container() -> Result<bool> {
     {
         Ok(child) => child,
         Err(e) => {
-            eprintln!("systemd-dect-virt call failed, assuming we're not in a container: {}", e);
+            eprintln!(
+                "systemd-detect-virt call failed, assuming we're not in a container: {}",
+                e
+            );
             return Ok(false);
         }
     };
