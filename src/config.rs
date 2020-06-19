@@ -123,13 +123,14 @@ fn read_devices(root: &Path, memtotal_mb: u64) -> Result<HashMap<String, Device>
                     );
                     continue;
                 }
-                Some(sname) => sname.to_string(),
+                Some(sname) if sname.starts_with("zram") && sname[4..].parse::<u64>().is_ok() => {
+                    sname.to_string()
+                }
+                Some(sname) => {
+                    println!("Ignoring section \"{}\"", sname);
+                    continue;
+                }
             };
-
-            if !sname.starts_with("zram") {
-                println!("Ignoring section \"{}\"", sname);
-                continue;
-            }
 
             let dev = devices
                 .entry(sname.clone())
