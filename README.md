@@ -44,6 +44,7 @@ systemd generator in rust. Details are still being figured out.
 
 Executing `make install` will create the following things:
 * Generator binary installed as `/usr/lib/systemd/system-generators/zram-generator`
+* `zram-generator(8)` and `zram-generator.conf(5)` manpages installed into `/usr/share/man/manN/`, this requires [`ronn`](https://github.com/apjanke/ronn-ng).
 * `units/swap-create@.service` copied into `/usr/lib/systemd/system/`
 * `zram-generator.conf.example` copied into `/usr/share/doc/zram-generator/`
 You need though create your own config file at one of the locations listed above.
