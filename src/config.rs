@@ -123,13 +123,14 @@ fn read_devices(root: &Path, memtotal_mb: u64) -> Result<HashMap<String, Device>
                     );
                     continue;
                 }
-                Some(sname) => sname.to_string(),
+                Some(sname) if sname.starts_with("zram") && sname[4..].parse::<u64>().is_ok() => {
+                    sname.to_string()
+                }
+                Some(sname) => {
+                    println!("Ignoring section \"{}\"", sname);
+                    continue;
+                }
             };
-
-            if !sname.starts_with("zram") {
-                println!("Ignoring section \"{}\"", sname);
-                continue;
-            }
 
             let dev = devices
                 .entry(sname.clone())
@@ -199,7 +200,14 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
         "zram-fraction" => {
             dev.zram_fraction = value
                 .parse()
-                .with_context(|| format!("Failed to parse zram-fraction \"{}\"", value))?;
+                .with_context(|| format!("Failed to parse zram-fraction \"{}\"", value))
+                .and_then(|f| {
+                    if f >= 0. {
+                        Ok(f)
+                    } else {
+                        Err(anyhow!("zram-fraction {} < 0", f))
+                    }
+                })?;
         }
 
         "max-zram-size" => {

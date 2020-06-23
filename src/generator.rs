@@ -32,7 +32,10 @@ fn virtualization_container() -> Result<bool> {
     {
         Ok(child) => child,
         Err(e) => {
-            eprintln!("systemd-dect-virt call failed, assuming we're not in a container: {}", e);
+            eprintln!(
+                "systemd-detect-virt call failed, assuming we're not in a container: {}",
+                e
+            );
             return Ok(false);
         }
     };
@@ -103,6 +106,7 @@ fn handle_device(output_directory: &Path, device: &Device) -> Result<u64> {
 
 [Unit]
 Description=Compressed swap on /dev/{zram_device}
+Documentation=man:zram-generator(8) man:zram-generator.conf(5)
 Requires=swap-create@{zram_device}.service
 After=swap-create@{zram_device}.service
 

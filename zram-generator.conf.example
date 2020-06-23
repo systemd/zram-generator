@@ -6,14 +6,11 @@
 #
 # "host-memory-limit = none" may be used to disable this limit. This
 # is also the default.
-#
-# To disable a device (when some configuration for it already exits),
-# set "host-memory-limit = 0".
 host-memory-limit = 9048
 
 # The fraction of memory to use as ZRAM. For example, if the machine
 # has 1 GiB, and zram-fraction=0.25, then the zram device will have
-# 256 MiB. Values in the range 0.10–0.40 are recommended.
+# 256 MiB. Values in the range 0.10–0.50 are recommended.
 #
 # The default is 0.5.
 zram-fraction = 0.10

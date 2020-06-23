@@ -1,0 +1,11 @@
+zram-generator(8)       zram-generator.8.ronn
+zram-generator.conf(5)  zram-generator.conf.5.ronn
+
+modprobe(8)             https://man7.org/linux/man-pages/man8/modprobe.8.html
+proc(5)                 https://man7.org/linux/man-pages/man5/proc.5.html
+
+systemd-detect-virt(1)  https://freedesktop.org/software/systemd/man/systemd-detect-virt.html
+systemd.generator(7)    https://freedesktop.org/software/systemd/man/systemd.generator.html
+systemd.swap(5)         https://freedesktop.org/software/systemd/man/systemd.swap.html
+systemd-makefs(8)       https://freedesktop.org/software/systemd/man/systemd-makefs.html
+systemd.syntax(5)       https://freedesktop.org/software/systemd/man/systemd.syntax.html
