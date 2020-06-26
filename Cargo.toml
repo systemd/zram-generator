@@ -14,9 +14,8 @@ anyhow = "1.0.12"
 clap = { version = "2.33", default-features = false }
 liboverdrop = "0.0.2"
 rust-ini = ">=0.13, <0.16"
-kernlog = { git = "https://github.com/nabijaczleweli/kernlog.rs.git", rev = "a44a3f021815e091966741aa3bcdcefdfd51590d" }
-simplelog = { version = "0.8", default-features = false }
-log = "0.4"
+libc = "0.2"
+log = { version = "0.4", features = ["std"] }
 
 [dev-dependencies]
 tempfile = "3"
