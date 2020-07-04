@@ -24,6 +24,37 @@ impl KernelLog {
     }
 }
 
+fn _write_kmsg(kmsg: &mut File, record: &log::Record) {
+    let level: u8 = match record.level() {
+        log::Level::Error => 3,
+        log::Level::Warn => 4,
+        log::Level::Info => 5,
+        log::Level::Debug => 6,
+        log::Level::Trace => 7,
+    };
+
+    let mut buf = Vec::new();
+    writeln!(
+        buf,
+        "<{}>{}[{}]: {}",
+        level,
+        record.target(),
+        unsafe { libc::getpid() },
+        record.args()
+    )
+    .unwrap();
+
+    let _ = kmsg.write(&buf);
+    let _ = kmsg.flush();
+}
+
+fn _write_stdout(record: &log::Record) {
+    let stdout = io::stdout();
+    let mut stdout = stdout.lock();
+    let _ = writeln!(stdout, "{}", record.args());
+    let _ = stdout.flush();
+}
+
 impl log::Log for KernelLog {
     fn enabled(&self, meta: &log::Metadata) -> bool {
         meta.level() <= self.maxlevel
@@ -34,37 +65,10 @@ impl log::Log for KernelLog {
             return;
         }
 
-        let level: u8 = match record.level() {
-            log::Level::Error => 3,
-            log::Level::Warn => 4,
-            log::Level::Info => 5,
-            log::Level::Debug => 6,
-            log::Level::Trace => 7,
-        };
-
-        let mut buf = Vec::new();
-        writeln!(
-            buf,
-            "<{}>{}[{}]: {}",
-            level,
-            record.target(),
-            unsafe { libc::getpid() },
-            record.args()
-        )
-        .unwrap();
-
         if let Ok(mut kmsg) = self.kmsg.lock() {
             match kmsg.as_mut() {
-                Some(kmsg) => {
-                    let _ = kmsg.write(&buf);
-                    let _ = kmsg.flush();
-                }
-                None => {
-                    let kmsg = io::stdout();
-                    let mut kmsg = kmsg.lock();
-                    let _ = kmsg.write(&buf);
-                    let _ = kmsg.flush();
-                }
+                Some(kmsg) => _write_kmsg(kmsg, record),
+                None => _write_stdout(record),
             }
         }
     }
