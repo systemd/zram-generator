@@ -6,7 +6,7 @@ mod kernlog;
 mod setup;
 
 use anyhow::Result;
-use clap::{app_from_crate, crate_authors, crate_description, crate_name, crate_version, Arg};
+use clap::{crate_description, crate_name, crate_version, App, Arg};
 use std::borrow::Cow;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -22,8 +22,9 @@ enum Opts {
 }
 
 fn get_opts() -> Opts {
-    #[allow(deprecated)]
-    let opts = app_from_crate!("\n")
+    let opts = App::new(crate_name!())
+        .version(crate_version!())
+        .about(crate_description!())
         .arg(
             Arg::from_usage("--setup-device 'Set up a single device'")
                 .conflicts_with("reset-device"),

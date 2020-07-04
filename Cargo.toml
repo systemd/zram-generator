@@ -5,7 +5,7 @@ authors = ["Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl>",
            "Igor Raits <i.gnatenko.brain@gmail.com>",
            "наб <nabijaczleweli@gmail.com>"]
 license = "MIT"
-description = "Systemd unit generator for zram swap devices"
+description = "Systemd unit generator for zram swap devices."
 homepage = "https://github.com/systemd/zram-generator"
 edition = "2018"
 
