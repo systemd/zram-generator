@@ -58,3 +58,9 @@ instead of `/` as root.
 
 The "{generator}" template in `units/swap-create@.service.d/binary-location.conf`
 can be substituted for a non-standard location of the binary for testing.
+
+### Authors
+
+Written by Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl>,
+Igor Raits <i.gnatenko.brain@gmail.com>, наб <nabijaczleweli@gmail.com>, and others.
+See https://github.com/systemd/zram-generator/graphs/contributors for the full list.

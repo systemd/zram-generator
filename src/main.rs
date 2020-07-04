@@ -2,6 +2,7 @@
 
 mod config;
 mod generator;
+mod kernlog;
 mod setup;
 
 use anyhow::Result;
@@ -54,12 +55,14 @@ fn get_opts() -> Opts {
 }
 
 fn main() -> Result<()> {
-    let (root, have_env_var): (Cow<'static, str>, bool) = match env::var("ZRAM_GENERATOR_ROOT") {
-        Ok(val) => (val.into(), true),
-        Err(env::VarError::NotPresent) => ("/".into(), false),
+    let (root, have_env_var, log_level) = match env::var("ZRAM_GENERATOR_ROOT") {
+        Ok(val) => (val.into(), true, log::LevelFilter::Trace),
+        Err(env::VarError::NotPresent) => (Cow::from("/"), false, log::LevelFilter::Info),
         Err(e) => return Err(e.into()),
     };
     let root = Path::new(&root[..]);
+
+    let _ = kernlog::init_with_level(log_level);
 
     match get_opts() {
         Opts::GenerateUnits(target) => {

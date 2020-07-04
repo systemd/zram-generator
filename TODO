@@ -1,2 +1,0 @@
-- logging in generators needs to go to kmsg, println!() is not enough.
-- read configuration also from /usr/lib?

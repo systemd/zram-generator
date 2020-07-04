@@ -1,9 +1,6 @@
 [package]
 name = "zram-generator"
 version = "0.2.0-rc.1"
-authors = ["Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl>",
-           "Igor Raits <i.gnatenko.brain@gmail.com>",
-           "наб <nabijaczleweli@gmail.com>"]
 license = "MIT"
 description = "Systemd unit generator for zram swap devices"
 homepage = "https://github.com/systemd/zram-generator"
@@ -14,6 +11,8 @@ anyhow = "1.0.12"
 clap = { version = "2.33", default-features = false }
 liboverdrop = "0.0.2"
 rust-ini = ">=0.13, <0.16"
+libc = "0.2"
+log = { version = "0.4", features = ["std"] }
 
 [dev-dependencies]
 tempfile = "3"

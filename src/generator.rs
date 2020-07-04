@@ -2,6 +2,7 @@
 
 use crate::config::Device;
 use anyhow::{anyhow, Context, Result};
+use log::{info, warn};
 use std::cmp;
 use std::fs;
 use std::iter::FromIterator;
@@ -32,7 +33,7 @@ fn virtualization_container() -> Result<bool> {
     {
         Ok(child) => child,
         Err(e) => {
-            eprintln!(
+            warn!(
                 "systemd-detect-virt call failed, assuming we're not in a container: {}",
                 e
             );
@@ -48,12 +49,12 @@ fn virtualization_container() -> Result<bool> {
 
 pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: bool) -> Result<()> {
     if devices.is_empty() {
-        println!("No devices configured, exiting.");
+        info!("No devices configured, exiting.");
         return Ok(());
     }
 
     if virtualization_container()? && !fake_mode {
-        println!("Running in a container, exiting.");
+        info!("Running in a container, exiting.");
         return Ok(());
     }
 
@@ -91,7 +92,7 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
 
 fn handle_device(output_directory: &Path, device: &Device) -> Result<u64> {
     let swap_name = format!("dev-{}.swap", device.name);
-    println!(
+    info!(
         "Creating {} for /dev/{} ({}MB)",
         swap_name,
         device.name,
