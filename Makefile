@@ -1,5 +1,6 @@
 INSTALL = install
 CARGO = cargo
+CARGOFLAGS =
 RONN = ronn
 PKG_CONFIG = pkg-config
 PREFIX = /usr
@@ -13,7 +14,7 @@ export SYSTEMD_UTIL_DIR
 .PHONY: build man check clean install
 
 build:
-	@$(CARGO) build --release
+	@$(CARGO) build --release $(CARGOFLAGS)
 	@sed -e 's,@SYSTEMD_SYSTEM_GENERATOR_DIR@,$(SYSTEMD_SYSTEM_GENERATOR_DIR),' \
 		< units/swap-create@.service.in \
 		> units/swap-create@.service
@@ -22,7 +23,7 @@ man:
 	@$(RONN) --organization="zram-generator developers" man/*.md
 
 check: build
-	@$(CARGO) test --release
+	@$(CARGO) test --release $(CARGOFLAGS)
 
 clean:
 	@$(CARGO) clean
