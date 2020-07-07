@@ -1,11 +1,12 @@
 INSTALL = install
 CARGO = cargo
 RONN = ronn
+PKG_CONFIG = pkg-config
 PREFIX = /usr
 
-SYSTEMD_UTIL_DIR := $(shell pkg-config --variable=systemdutildir systemd)
-SYSTEMD_SYSTEM_UNIT_DIR := $(shell pkg-config --variable=systemdsystemunitdir systemd)
-SYSTEMD_SYSTEM_GENERATOR_DIR := $(shell pkg-config --variable=systemdsystemgeneratordir systemd)
+SYSTEMD_UTIL_DIR := $(shell $(PKG_CONFIG) --variable=systemdutildir systemd)
+SYSTEMD_SYSTEM_UNIT_DIR := $(shell $(PKG_CONFIG) --variable=systemdsystemunitdir systemd)
+SYSTEMD_SYSTEM_GENERATOR_DIR := $(shell $(PKG_CONFIG) --variable=systemdsystemgeneratordir systemd)
 
 SYSTEMD_MAKEFS_COMMAND = $(SYSTEMD_UTIL_DIR)/systemd-makefs
 export SYSTEMD_MAKEFS_COMMAND
