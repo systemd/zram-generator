@@ -7,9 +7,7 @@ PREFIX = /usr
 SYSTEMD_UTIL_DIR := $(shell $(PKG_CONFIG) --variable=systemdutildir systemd)
 SYSTEMD_SYSTEM_UNIT_DIR := $(shell $(PKG_CONFIG) --variable=systemdsystemunitdir systemd)
 SYSTEMD_SYSTEM_GENERATOR_DIR := $(shell $(PKG_CONFIG) --variable=systemdsystemgeneratordir systemd)
-
-SYSTEMD_MAKEFS_COMMAND = $(SYSTEMD_UTIL_DIR)/systemd-makefs
-export SYSTEMD_MAKEFS_COMMAND
+export SYSTEMD_UTIL_DIR
 
 .DEFAULT: build
 .PHONY: build man check clean install
