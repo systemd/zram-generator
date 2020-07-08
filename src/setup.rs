@@ -9,6 +9,15 @@ use std::os::unix::process::ExitStatusExt;
 use std::path::Path;
 use std::process::Command;
 
+const SYSTEMD_MAKEFS_COMMAND: &str = concat!(
+    env!(
+        "SYSTEMD_UTIL_DIR",
+        "Define $SYSTEMD_UTIL_DIR to the result of \
+         $(pkg-config --variable=systemdutildir systemd) (e.g. /usr/lib/systemd/)"
+    ),
+    "/systemd-makefs"
+);
+
 pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()> {
     let device = device.ok_or_else(|| anyhow!("Device {} not found", device_name))?;
 
@@ -41,19 +50,21 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
         )
     })?;
 
-    match Command::new("/usr/lib/systemd/systemd-makefs").arg("swap").arg(Path::new("/dev").join(device_name)).status() {
+    match Command::new(SYSTEMD_MAKEFS_COMMAND).arg("swap").arg(Path::new("/dev").join(device_name)).status() {
         Ok(status) =>
             match status.code() {
                 Some(0) => Ok(()),
-                Some(code) => Err(anyhow!("mkswap failed with exit code {}", code)),
-                None => Err(anyhow!("mkswap terminated by signal {}",
+                Some(code) => Err(anyhow!("{} failed with exit code {}", SYSTEMD_MAKEFS_COMMAND, code)),
+                None => Err(anyhow!("{} terminated by signal {}",
+                                    SYSTEMD_MAKEFS_COMMAND,
                                     status.signal().expect("on unix, status status.code() is None iff status.signal() isn't; \
                                                             this expect() will never panic, save for an stdlib bug"))),
             },
         Err(e) =>
             Err(e).with_context(|| {
                 format!(
-                    "mkswap call failed for /dev/{}",
+                    "{} call failed for /dev/{}",
+                    SYSTEMD_MAKEFS_COMMAND,
                     device_name
                 )
             }),

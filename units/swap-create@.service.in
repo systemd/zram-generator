@@ -10,5 +10,5 @@ DefaultDependencies=false
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/lib/systemd/system-generators/zram-generator --setup-device '%i'
-ExecStop=/usr/lib/systemd/system-generators/zram-generator --reset-device '%i'
+ExecStart=@SYSTEMD_SYSTEM_GENERATOR_DIR@/zram-generator --setup-device '%i'
+ExecStop=@SYSTEMD_SYSTEM_GENERATOR_DIR@/zram-generator --reset-device '%i'

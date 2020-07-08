@@ -29,17 +29,11 @@ jobs:
           override: true
           profile: minimal
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose
+        run: make build CARGOFLAGS="--verbose"
       - name: Insert zram module
         run: sudo modprobe -v zram
       - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --verbose
+        run: make check CARGOFLAGS="--verbose"
 
   rustfmt:
     name: rustfmt
