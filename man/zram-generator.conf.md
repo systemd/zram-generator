@@ -32,6 +32,12 @@ It is recommended to prefix all filenames in those subdirectories with a two-dig
 To disable a configuration file supplied by the vendor, the recommended way is to place a symlink to */dev/null* in the configuration directory in */etc/*,
 with the same filename as the vendor configuration file.
 
+The generator understands the following option on the kernel command-line: `systemd.zram[=0|1]`.
+When specified with a true argument (or no argument), the `zram0` device will be created.
+Default options apply, but may be overridden by configuration on disk if present.
+When specified with a false argument, no zram devices will be created by the generator.
+This option thus has higher priority than the configuration files.
+
 ## OPTIONS
 
 Each device is configured independently in its `[zramN]` section, where N is a nonnegative integer. Other sections are ignored.

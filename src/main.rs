@@ -7,6 +7,7 @@ mod setup;
 
 use anyhow::Result;
 use clap::{crate_description, crate_name, crate_version, App, Arg};
+use log::{info, LevelFilter};
 use std::borrow::Cow;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -57,22 +58,33 @@ fn get_opts() -> Opts {
 
 fn main() -> Result<()> {
     let (root, have_env_var, log_level) = match env::var("ZRAM_GENERATOR_ROOT") {
-        Ok(val) => (val.into(), true, log::LevelFilter::Trace),
-        Err(env::VarError::NotPresent) => (Cow::from("/"), false, log::LevelFilter::Info),
+        Ok(val) => (val.into(), true, LevelFilter::Trace),
+        Err(env::VarError::NotPresent) => (Cow::from("/"), false, LevelFilter::Info),
         Err(e) => return Err(e.into()),
     };
     let root = Path::new(&root[..]);
 
     let _ = kernlog::init_with_level(log_level);
 
+    let kernel_override = || match config::kernel_zram_option(root) {
+        Some(false) => {
+            info!("Disabled by kernel cmdline option, exiting.");
+            std::process::exit(0);
+        }
+        None => false,
+        Some(true) => true,
+    };
+
     match get_opts() {
         Opts::GenerateUnits(target) => {
-            let devices = config::read_all_devices(&root)?;
+            let kernel_override = kernel_override();
+            let devices = config::read_all_devices(&root, kernel_override)?;
             let output_directory = PathBuf::from(target);
             generator::run_generator(&devices, &output_directory, have_env_var)
         }
         Opts::SetupDevice(dev) => {
-            let device = config::read_device(&root, &dev)?;
+            let kernel_override = kernel_override();
+            let device = config::read_device(&root, kernel_override, &dev)?;
             setup::run_device_setup(device, &dev)
         }
         Opts::ResetDevice(dev) => {

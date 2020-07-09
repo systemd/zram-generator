@@ -20,6 +20,8 @@ The generator will be invoked by systemd early at boot. The generator will then:
 
 The generator does nothing if run inside a container (as determined by *systemd-detect-virt(8) --container*).
 
+The generator also understands the kernel command-line option `systemd.zram`. See zram-generator.conf(5) for details.
+
 Setting the `ZRAM_GENERATOR_ROOT` environment variable makes the generator run in test mode, in which case containerisation is ignored and step `3` is skipped.<br />
 For the ramifications of `ZRAM_GENERATOR_ROOT` on config handling, see zram-generator.conf(5).
 
