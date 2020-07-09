@@ -29,7 +29,14 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
     let rootdir = prepare_directory(&srcroot)?;
     let root = rootdir.path();
 
-    let devices = config::read_all_devices(root)?;
+    let kernel_override = match config::kernel_zram_option(root) {
+        Some(true) => true,
+        Some(false) => {
+            return Ok(vec![]);
+        }
+        _ => false,
+    };
+    let devices = config::read_all_devices(root, kernel_override)?;
 
     let output_directory = root.join("run/units");
     generator::run_generator(&devices, &output_directory, true)?;
@@ -72,6 +79,17 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
             }
         }
 
+        "05-kernel-disabled" => {
+            assert_eq!(devices.len(), 0);
+        }
+
+        "06-kernel-enabled" => {
+            assert_eq!(devices.len(), 1);
+            let d = devices.iter().next().unwrap();
+            assert_eq!(d.host_memory_limit_mb, None);
+            assert_eq!(d.zram_fraction, 0.5);
+        }
+
         _ => (),
     }
 
@@ -111,4 +129,14 @@ fn test_03_too_much_memory() {
 #[test]
 fn test_04_dropins() {
     test_generation("04-dropins").unwrap();
+}
+
+#[test]
+fn test_05_kernel_disabled() {
+    test_generation("05-kernel-disabled").unwrap();
+}
+
+#[test]
+fn test_06_kernel_enabled() {
+    test_generation("06-kernel-enabled").unwrap();
 }

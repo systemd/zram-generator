@@ -86,17 +86,17 @@ impl fmt::Display for Device {
     }
 }
 
-pub fn read_device(root: &Path, name: &str) -> Result<Option<Device>> {
+pub fn read_device(root: &Path, kernel_override: bool, name: &str) -> Result<Option<Device>> {
     let memtotal_mb = (get_total_memory_kb(&root)? as f64 / 1024.) as u64;
-    Ok(read_devices(root, memtotal_mb)?
+    Ok(read_devices(root, kernel_override, memtotal_mb)?
         .remove(name)
         .filter(|dev| dev.disksize > 0))
 }
 
-pub fn read_all_devices(root: &Path) -> Result<Vec<Device>> {
+pub fn read_all_devices(root: &Path, kernel_override: bool) -> Result<Vec<Device>> {
     let memtotal_mb = get_total_memory_kb(&root)? / 1024;
 
-    let devices: Vec<Device> = read_devices(root, memtotal_mb)?
+    let devices: Vec<Device> = read_devices(root, kernel_override, memtotal_mb)?
         .into_iter()
         .filter(|(_, dev)| dev.disksize > 0)
         .map(|(_, dev)| dev)
@@ -105,11 +105,15 @@ pub fn read_all_devices(root: &Path) -> Result<Vec<Device>> {
     Ok(devices)
 }
 
-fn read_devices(root: &Path, memtotal_mb: u64) -> Result<HashMap<String, Device>> {
+fn read_devices(
+    root: &Path,
+    kernel_override: bool,
+    memtotal_mb: u64,
+) -> Result<HashMap<String, Device>> {
     let fragments = locate_fragments(root);
 
-    if fragments.is_empty() {
-        info!("No configuration file found.");
+    if fragments.is_empty() && !kernel_override {
+        info!("No configuration found.");
     }
 
     let mut devices: HashMap<String, Device> = HashMap::new();
@@ -144,6 +148,12 @@ fn read_devices(root: &Path, memtotal_mb: u64) -> Result<HashMap<String, Device>
                 parse_line(dev, k, v)?;
             }
         }
+    }
+
+    if kernel_override {
+        devices
+            .entry("zram0".to_string())
+            .or_insert_with(|| Device::new("zram0".to_string()));
     }
 
     for dev in devices.values_mut() {
@@ -254,6 +264,43 @@ fn get_total_memory_kb(root: &Path) -> Result<u64> {
     _get_total_memory_kb(&path)
 }
 
+fn _kernel_has_option(path: &Path, word: &str) -> Result<Option<bool>> {
+    let text = fs::read_to_string(path)?;
+
+    // The last argument wins, so check all words in turn.
+    Ok(text.split_whitespace().fold(None, |acc, w| {
+        if !w.starts_with(word) {
+            acc
+        } else {
+            match &w[word.len()..] {
+                "" | "=1" | "=yes" | "=true" | "=on" => Some(true),
+                "=0" | "=no" | "=false" | "=off" => Some(false),
+                _ => acc,
+            }
+        }
+    }))
+}
+
+pub fn kernel_has_option(root: &Path, word: &str) -> Result<Option<bool>> {
+    let path = root.join("proc/cmdline");
+    _kernel_has_option(&path, word)
+}
+
+pub fn kernel_zram_option(root: &Path) -> Option<bool> {
+    match kernel_has_option(root, "systemd.zram") {
+        Ok(Some(true)) => Some(true),
+        Ok(Some(false)) => {
+            info!("Disabled by systemd.zram option in /proc/cmdline.");
+            Some(false)
+        }
+        Ok(None) => None,
+        Err(e) => {
+            warn!("Failed to parse /proc/cmdline ({}), ignoring.", e);
+            None
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -291,5 +338,36 @@ MemTotal::        8013220 kB
         .unwrap();
         file.flush().unwrap();
         _get_total_memory_kb(file.path()).unwrap();
+    }
+
+    #[test]
+    fn test_kernel_has_option() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+
+        file.write(
+            b"\
+foo=1 foo=0 foo=on foo=off foo
+",
+        )
+        .unwrap();
+        file.flush().unwrap();
+        let foo = _kernel_has_option(file.path(), "foo").unwrap();
+        assert_eq!(foo, Some(true));
+    }
+
+    #[test]
+    fn test_kernel_has_no_option() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+
+        file.write(
+            b"\
+foo=1
+foo=0
+",
+        )
+        .unwrap();
+        file.flush().unwrap();
+        let foo = _kernel_has_option(file.path(), "foo").unwrap();
+        assert_eq!(foo, Some(false));
     }
 }
