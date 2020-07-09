@@ -42,11 +42,18 @@ systemd generator in rust. Details are still being figured out.
 
 ### Installation
 
-Executing `make install` will create the following things:
-* `zram-generator` binary installed in the systemd system generator directory (usually `/usr/lib/systemd/system-generators/`)
-* `zram-generator(8)` and `zram-generator.conf(5)` manpages installed into `/usr/share/man/manN/`, this requires [`ronn`](https://github.com/apjanke/ronn-ng).
-* `units/swap-create@.service` copied into the systemd system unit directory (usually `/usr/lib/systemd/system/`)
-* `zram-generator.conf.example` copied into `/usr/share/doc/zram-generator/`
+It is recommended to use an existing package:
+
+* Fedora: `sudo dnf install zram-generator-defaults` (or `sudo dnf install zram-generator` to install without the default configuration)
+* Debian: packages provided by nabijaczleweli, see https://debian.nabijaczleweli.xyz/README.
+* Arch: AUR packages https://aur.archlinux.org/packages/zram-generator/ (or
+        https://aur.archlinux.org/packages/zram-generator-git/ for the latest git commit)
+
+To install directly from sources, execute `make install`:
+* `zram-generator` binary is installed in the systemd system generator directory (usually `/usr/lib/systemd/system-generators/`)
+* `zram-generator(8)` and `zram-generator.conf(5)` manpages are installed into `/usr/share/man/manN/`, this requires [`ronn`](https://github.com/apjanke/ronn-ng).
+* `units/swap-create@.service` are copied into the systemd system unit directory (usually `/usr/lib/systemd/system/`)
+* `zram-generator.conf.example` is copied into `/usr/share/doc/zram-generator/`
 You need though create your own config file at one of the locations listed above.
 
 ### Testing
