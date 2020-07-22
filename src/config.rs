@@ -88,7 +88,9 @@ impl fmt::Display for Device {
 
 pub fn read_device(root: &Path, name: &str) -> Result<Option<Device>> {
     let memtotal_mb = (get_total_memory_kb(&root)? as f64 / 1024.) as u64;
-    Ok(read_devices(root, memtotal_mb)?.remove(name))
+    Ok(read_devices(root, memtotal_mb)?
+        .remove(name)
+        .filter(|dev| dev.disksize > 0))
 }
 
 pub fn read_all_devices(root: &Path) -> Result<Vec<Device>> {
