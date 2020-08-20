@@ -93,7 +93,7 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
 fn handle_device(output_directory: &Path, device: &Device) -> Result<u64> {
     let swap_name = format!("dev-{}.swap", device.name);
     info!(
-        "Creating {} for /dev/{} ({}MB)",
+        "Creating unit {} (/dev/{} with {}MB)",
         swap_name,
         device.name,
         device.disksize / 1024 / 1024

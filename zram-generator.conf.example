@@ -1,3 +1,6 @@
+# This file is part of the zram-generator project
+# https://github.com/systemd/zram-generator
+
 [zram0]
 # This section describes the settings for /dev/zram0.
 #
