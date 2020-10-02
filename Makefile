@@ -13,8 +13,10 @@ export SYSTEMD_UTIL_DIR
 .DEFAULT: build
 .PHONY: build man check clean install
 
-build:
+build: systemd_service
 	@$(CARGO) build --release $(CARGOFLAGS)
+
+systemd_service:
 	@sed -e 's,@SYSTEMD_SYSTEM_GENERATOR_DIR@,$(SYSTEMD_SYSTEM_GENERATOR_DIR),' \
 		< units/swap-create@.service.in \
 		> units/swap-create@.service
