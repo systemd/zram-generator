@@ -6,6 +6,7 @@
 
 use std::fs::{File, OpenOptions};
 use std::io::{self, Write};
+use std::process::id;
 use std::sync::Mutex;
 
 /// Kernel logger implementation
@@ -39,7 +40,7 @@ fn _write_kmsg(kmsg: &mut File, record: &log::Record) {
         "<{}>{}[{}]: {}",
         level,
         record.target(),
-        unsafe { libc::getpid() },
+        id(),
         record.args()
     )
     .unwrap();
