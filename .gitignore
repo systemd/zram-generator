@@ -1,5 +1,4 @@
 *~
-/enable-zram
 /Cargo.lock
 /target
 **/*.rs.bk
