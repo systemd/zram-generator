@@ -18,8 +18,8 @@ build: systemd_service
 
 systemd_service:
 	@sed -e 's,@SYSTEMD_SYSTEM_GENERATOR_DIR@,$(SYSTEMD_SYSTEM_GENERATOR_DIR),' \
-		< units/swap-create@.service.in \
-		> units/swap-create@.service
+		< units/systemd-zram-setup@.service.in \
+		> units/systemd-zram-setup@.service
 
 man:
 	@$(RONN) --organization="zram-generator developers" man/*.md
@@ -29,11 +29,11 @@ check: build
 
 clean:
 	@$(CARGO) clean
-	@rm -f units/swap-create@.service
+	@rm -f units/systemd-zram-setup@.service
 
 install:
-	$(INSTALL) -Dpm755 target/release/zram-generator $(DESTDIR)$(SYSTEMD_SYSTEM_GENERATOR_DIR)/zram-generator
-	$(INSTALL) -Dpm644 units/swap-create@.service $(DESTDIR)$(SYSTEMD_SYSTEM_UNIT_DIR)/swap-create@.service
-	$(INSTALL) -Dpm644 zram-generator.conf.example $(DESTDIR)$(PREFIX)/share/doc/zram-generator/zram-generator.conf.example
-	$(INSTALL) -Dpm644 man/zram-generator.8 $(DESTDIR)$(PREFIX)/share/man/man8/zram-generator.8
-	$(INSTALL) -Dpm644 man/zram-generator.conf.5 $(DESTDIR)$(PREFIX)/share/man/man5/zram-generator.conf.5
+	$(INSTALL) -Dpm755 target/release/zram-generator -t $(DESTDIR)$(SYSTEMD_SYSTEM_GENERATOR_DIR)/
+	$(INSTALL) -Dpm644 units/systemd-zram-setup@.service -t $(DESTDIR)$(SYSTEMD_SYSTEM_UNIT_DIR)/
+	$(INSTALL) -Dpm644 zram-generator.conf.example -t $(DESTDIR)$(PREFIX)/share/doc/zram-generator/
+	$(INSTALL) -Dpm644 man/zram-generator.8 -t $(DESTDIR)$(PREFIX)/share/man/man8/
+	$(INSTALL) -Dpm644 man/zram-generator.conf.5 -t $(DESTDIR)$(PREFIX)/share/man/man5/

@@ -1,4 +1,4 @@
-# `swap-create@.service` generator for zram devices
+# `systemd-zram-setup@.service` generator for zram devices
 
 This generator provides a simple and fast mechanism to configure swap on `/dev/zram*` devices.
 
@@ -52,7 +52,7 @@ It is recommended to use an existing package:
 To install directly from sources, execute `make install`:
 * `zram-generator` binary is installed in the systemd system generator directory (usually `/usr/lib/systemd/system-generators/`)
 * `zram-generator(8)` and `zram-generator.conf(5)` manpages are installed into `/usr/share/man/manN/`, this requires [`ronn`](https://github.com/apjanke/ronn-ng).
-* `units/swap-create@.service` are copied into the systemd system unit directory (usually `/usr/lib/systemd/system/`)
+* `units/systemd-zram-setup@.service` is copied into the systemd system unit directory (usually `/usr/lib/systemd/system/`)
 * `zram-generator.conf.example` is copied into `/usr/share/doc/zram-generator/`
 You need though create your own config file at one of the locations listed above.
 
@@ -63,7 +63,7 @@ The tests require either the `zram` module to be loaded, or root to run `modprob
 Set the `ZRAM_GENERATOR_ROOT` environment variable to use that
 instead of `/` as root.
 
-The "{generator}" template in `units/swap-create@.service.d/binary-location.conf`
+The "{generator}" template in `units/systemd-zram-setup@.service.d/binary-location.conf`
 can be substituted for a non-standard location of the binary for testing.
 
 ### Authors

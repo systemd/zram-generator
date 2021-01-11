@@ -3,8 +3,8 @@
 [Unit]
 Description=Compressed swap on /dev/zram0
 Documentation=man:zram-generator(8) man:zram-generator.conf(5)
-Requires=swap-create@zram0.service
-After=swap-create@zram0.service
+Requires=systemd-zram-setup@zram0.service
+After=systemd-zram-setup@zram0.service
 
 [Swap]
 What=/dev/zram0

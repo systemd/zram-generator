@@ -26,7 +26,7 @@ Setting the `ZRAM_GENERATOR_ROOT` environment variable makes the generator run i
 For the ramifications of `ZRAM_GENERATOR_ROOT` on config handling, see zram-generator.conf(5).
 
 
-The generated *dev-zramN.swap* units depend on `zram-create@zramN.service`, which will:
+The generated *dev-zramN.swap* units depend on `systemd-swap-create@zramN.service`, which will:
 
   1. read configuration files from *{/etc,/lib}/systemd/zram-generator.conf[.d]* (see zram-generator.conf(5) for details);
   2. set the desired compression algorithm, if any;
