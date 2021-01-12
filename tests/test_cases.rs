@@ -141,3 +141,13 @@ fn test_05_kernel_disabled() {
 fn test_06_kernel_enabled() {
     test_generation("06-kernel-enabled").unwrap();
 }
+
+#[test]
+fn test_07_mount_point() {
+    test_generation("07-mount-point").unwrap();
+}
+
+#[test]
+fn test_08_plain_device() {
+    test_generation("08-plain-device").unwrap();
+}

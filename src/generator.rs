@@ -107,7 +107,22 @@ fn write_contents(output_directory: &Path, filename: &str, contents: &str) -> Re
 }
 
 fn handle_device(output_directory: &Path, device: &Device) -> Result<u64> {
+    if device.is_swap() {
+        handle_zram_swap(output_directory, device)?;
+    } else {
+        handle_zram_mount_point(output_directory, device)?;
+    }
+
+    /* Return the device number */
+
+    device.name[4..]
+        .parse()
+        .with_context(|| format!("zram device \"{}\" number", device.name))
+}
+
+fn handle_zram_swap(output_directory: &Path, device: &Device) -> Result<()> {
     let swap_name = format!("dev-{}.swap", device.name);
+
     info!(
         "Creating unit {} (/dev/{} with {}MB)",
         swap_name,
@@ -157,9 +172,77 @@ Priority=100
     let target_path = format!("../{}", swap_name);
     make_symlink(&target_path, &symlink_path)?;
 
-    /* Return the device number */
+    Ok(())
+}
 
-    device.name[4..]
-        .parse()
-        .with_context(|| format!("zram device \"{}\" number", device.name))
+fn mount_unit_name(path: &Path) -> String {
+    /* FIXME: handle full escaping */
+    assert!(path.is_absolute());
+
+    let path = path.strip_prefix("/").unwrap().to_str().unwrap();
+    format!("{}.mount", path.replace("/", "-"))
+}
+
+fn handle_zram_mount_point(output_directory: &Path, device: &Device) -> Result<()> {
+    if device.mount_point.is_none() {
+        /* In this case we don't need to generate any units. */
+        return Ok(());
+    }
+
+    let ref mount_name = mount_unit_name(device.mount_point.as_ref().unwrap());
+
+    info!(
+        "Creating unit {} (/dev/{} with {}MB)",
+        mount_name,
+        device.name,
+        device.disksize / 1024 / 1024
+    );
+
+    /* systemd-zram-setup@.service.
+     * We use the packaged unit, and only need to provide a small drop-in. */
+
+    write_contents(
+        output_directory,
+        &format!(
+            "systemd-zram-setup@{}.service.d/bindsto-mount.conf",
+            device.name
+        ),
+        &format!(
+            "\
+[Unit]
+BindsTo={}
+",
+            mount_name
+        ),
+    )?;
+
+    write_contents(
+        output_directory,
+        &mount_name,
+        &format!(
+            "\
+[Unit]
+Description=Compressed Storage on /dev/{zram_device}
+Documentation=man:zram-generator(8) man:zram-generator.conf(5)
+Requires=systemd-zram-setup@{zram_device}.service
+After=systemd-zram-setup@{zram_device}.service
+
+[Mount]
+What=/dev/{zram_device}
+Where={mount_point:?}
+",
+            zram_device = device.name,
+            mount_point = device.mount_point.as_ref().unwrap(),
+        ),
+    )?;
+
+    /* enablement symlink */
+
+    let symlink_path = output_directory
+        .join("local-fs.target.wants")
+        .join(&mount_name);
+    let target_path = format!("../{}", mount_name);
+    make_symlink(&target_path, &symlink_path)?;
+
+    Ok(())
 }

@@ -2,18 +2,9 @@
 
 This generator provides a simple and fast mechanism to configure swap on `/dev/zram*` devices.
 
-Create `/etc/systemd/zram-generator.conf`:
+The main use case is create **swap** devices, but devices with a file system can be created too, see below.
 
-```ini
-# /etc/systemd/zram-generator.conf
-[zram0]
-zram-fraction = 0.5
-```
-
-A zram device will be created for each section. No actual
-configuration is necessary (the default of zram-fraction=0.5 will be
-used unless overriden), but the configuration file with at least one
-section must exist.
+### Configuration
 
 A default config file may be located in /usr.
 This generator checks the following locations:
@@ -36,6 +27,32 @@ See systemd.unit(5) for a detailed description of this logic.
 
 See `zram-generator.conf.example` for a list of available settings.
 
+### Swap devices
+
+Create `/etc/systemd/zram-generator.conf`:
+
+```ini
+# /etc/systemd/zram-generator.conf
+[zram0]
+zram-fraction = 0.5
+```
+
+A zram device will be created for each section. No actual
+configuration is necessary (the default of `zram-fraction=0.5` will be
+used unless overriden), but the configuration file with at least one
+section must exist.
+
+### Mount points
+
+```ini
+# /etc/systemd/zram-generator.conf
+[zram1]
+mount-point = /var/tmp
+```
+
+This will set up a /dev/zram1 with ext2 and generate a mount unit for /var/tmp.
+
+### Rust
 
 The second purpose of this program is to serve as an example of a
 systemd generator in rust. Details are still being figured out.
