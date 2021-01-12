@@ -31,7 +31,7 @@ clean:
 	@$(CARGO) clean
 	@rm -f units/swap-create@.service
 
-install: build man
+install:
 	$(INSTALL) -Dpm755 target/release/zram-generator $(DESTDIR)$(SYSTEMD_SYSTEM_GENERATOR_DIR)/zram-generator
 	$(INSTALL) -Dpm644 units/swap-create@.service $(DESTDIR)$(SYSTEMD_SYSTEM_UNIT_DIR)/swap-create@.service
 	$(INSTALL) -Dpm644 zram-generator.conf.example $(DESTDIR)$(PREFIX)/share/doc/zram-generator/zram-generator.conf.example
