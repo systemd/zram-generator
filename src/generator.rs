@@ -64,10 +64,13 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
     if !devices.is_empty() && !fake_mode {
         /* We created some units, let's make sure the module is loaded and the devices exist */
         if !Path::new("/sys/class/zram-control").exists() {
-            Command::new("modprobe")
+            let status = Command::new("modprobe")
                 .arg("zram")
                 .status()
-                .context("modprobe call failed")?;
+                .context("Failed to spawn modprobe")?;
+            if !status.success() {
+                warn!("modprobe zram failed, ignoring: code {}", status);
+            }
         }
 
         let max_device = devices
