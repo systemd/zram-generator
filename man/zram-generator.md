@@ -9,7 +9,7 @@ zram-generator(8) -- Systemd unit generator for zram swap devices
 
 ## DESCRIPTION
 
-`zram-generator` is a generator that creates systemd units to format and use compressed swap devices, either as swap or a mount point.
+`zram-generator` is a generator that creates systemd units to format and use compressed RAM devices, either as swap or a mount point.
 
 
 The generator will be invoked by systemd early at boot. The generator will then:

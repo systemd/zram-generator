@@ -33,7 +33,7 @@ max-zram-size = 512
 compression-algorithm = lzo-rle
 
 [zram1]
-# This section describes the settings for /dev/zram0.
+# This section describes the settings for /dev/zram1.
 #
 # host-memory-limit is not specifed, so this device will always be created.
 
