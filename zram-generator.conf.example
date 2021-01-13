@@ -31,3 +31,18 @@ max-zram-size = 512
 # The compression algorithm to use for the zram device,
 # or leave unspecified to keep the kernel default.
 compression-algorithm = lzo-rle
+
+[zram1]
+# This section describes the settings for /dev/zram0.
+#
+# host-memory-limit is not specifed, so this device will always be created.
+
+# Size the device to a tenth of RAM.
+zram-fraction = 0.1
+
+# The file system to put on the device. If not specified, ext2 will be used.
+fs-type = ext2
+
+# Where to mount the file system. If a mount point is not specified,
+# the device will be initialized, but will not be used for anything.
+mount-point = /run/compressed-mount-point

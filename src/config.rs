@@ -9,15 +9,21 @@ use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::fs;
 use std::io::{prelude::*, BufReader};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 pub struct Device {
     pub name: String,
+
     pub host_memory_limit_mb: Option<u64>,
+
     pub zram_fraction: f64,
     pub max_zram_size_mb: Option<u64>,
     pub compression_algorithm: Option<String>,
     pub disksize: u64,
+
+    pub mount_point: Option<PathBuf>, // when set, a mount unit will be created
+    pub fs_type: Option<String>,      // useful mostly for mounts, None is the same
+                                      // as "swap" when mount_point is not set
 }
 
 impl Device {
@@ -29,6 +35,8 @@ impl Device {
             max_zram_size_mb: Some(4 * 1024),
             compression_algorithm: None,
             disksize: 0,
+            mount_point: None,
+            fs_type: None,
         }
     }
 
@@ -41,6 +49,11 @@ impl Device {
             None => f.write_str("<none>")?,
         }
         Ok(())
+    }
+
+    pub fn is_swap(&self) -> bool {
+        return self.mount_point.is_none()
+            && (self.fs_type.is_none() || self.fs_type.as_ref().unwrap() == "swap");
     }
 
     fn is_enabled(&self, memtotal_mb: u64) -> bool {
@@ -56,6 +69,16 @@ impl Device {
                 false
             }
             _ => true,
+        }
+    }
+
+    pub fn effective_fs_type(&self) -> &str {
+        match self.fs_type {
+            Some(ref fs_type) => fs_type,
+            None => match self.is_swap() {
+                true => "swap",
+                false => "ext2",
+            },
         }
     }
 
@@ -204,6 +227,20 @@ fn parse_optional_size(val: &str) -> Result<Option<u64>> {
     })
 }
 
+fn verify_mount_point(val: &str) -> Result<PathBuf> {
+    let path = PathBuf::from(val);
+
+    if path.is_relative() {
+        return Err(anyhow!("mount-point {} is not absolute", val));
+    }
+
+    if path.components().any(|c| c == Component::ParentDir) {
+        return Err(anyhow!("mount-point {:#?} is not normalized", path));
+    }
+
+    Ok(path)
+}
+
 fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
     match key {
         "host-memory-limit" | "memory-limit" => {
@@ -230,6 +267,14 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
 
         "compression-algorithm" => {
             dev.compression_algorithm = Some(value.to_string());
+        }
+
+        "mount-point" => {
+            dev.mount_point = Some(verify_mount_point(value)?);
+        }
+
+        "fs-type" => {
+            dev.fs_type = Some(value.to_string());
         }
 
         _ => {
@@ -369,5 +414,34 @@ foo=0
         file.flush().unwrap();
         let foo = _kernel_has_option(file.path(), "foo").unwrap();
         assert_eq!(foo, Some(false));
+    }
+
+    #[test]
+    fn test_verify_mount_point() {
+        let p = verify_mount_point("/foobar").unwrap();
+        assert_eq!(p, PathBuf::from("/foobar"));
+    }
+
+    #[test]
+    fn test_verify_mount_point_absolute() {
+        let p = verify_mount_point("foo/bar");
+        assert!(p.is_err());
+    }
+
+    #[test]
+    fn test_verify_mount_point_normalized() {
+        let p = verify_mount_point("/foo/../bar");
+        assert!(p.is_err());
+    }
+
+    #[test]
+    fn test_verify_mount_point_normalized2() {
+        let p = verify_mount_point("/foo/..");
+        assert!(p.is_err());
+    }
+
+    #[test]
+    fn test_verify_mount_point_self() {
+        verify_mount_point("/foo/./bar/").unwrap();
     }
 }

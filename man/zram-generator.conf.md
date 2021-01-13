@@ -80,6 +80,17 @@ Devices with the final size of *0* will be discarded.
 
   If unset, none will be configured and the kernel's default will be used.
 
+* `mount-point`=
+
+  Format the device with a file system (not as swap) and mount this file system over the specified directory.
+  When neither this option nor `fs-type`= is specified, the device will be formatted as swap.
+
+* `fs-type`=
+
+  Specifies how the device shall be formatted. The default is *ext2* if `mount-point` is specified, and *swap* otherwise. (Effectively, the device will be formatted as swap, if neither `fs-type`= nor `mount-point`= are specified.)
+
+  Also see systemd-makefs(8).
+
 ## ENVIRONMENT VARIABLES
 
 Setting `ZRAM_GENERATOR_ROOT` during parsing will cause */proc/meminfo* to be read from *$ZRAM_GENERATOR_ROOT/proc/meminfo* instead,
