@@ -160,9 +160,10 @@ After=systemd-zram-setup@{zram_device}.service
 
 [Swap]
 What=/dev/{zram_device}
-Priority=100
+Priority={swap_priority}
 ",
-            zram_device = device.name
+            zram_device = device.name,
+            swap_priority = device.swap_priority
         ),
     )?;
 

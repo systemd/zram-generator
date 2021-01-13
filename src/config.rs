@@ -21,6 +21,7 @@ pub struct Device {
     pub compression_algorithm: Option<String>,
     pub disksize: u64,
 
+    pub swap_priority: i32,
     pub mount_point: Option<PathBuf>, // when set, a mount unit will be created
     pub fs_type: Option<String>,      // useful mostly for mounts, None is the same
                                       // as "swap" when mount_point is not set
@@ -35,6 +36,7 @@ impl Device {
             max_zram_size_mb: Some(4 * 1024),
             compression_algorithm: None,
             disksize: 0,
+            swap_priority: 100,
             mount_point: None,
             fs_type: None,
         }
@@ -227,6 +229,18 @@ fn parse_optional_size(val: &str) -> Result<Option<u64>> {
     })
 }
 
+fn parse_swap_priority(val: &str) -> Result<i32> {
+    let val = val
+        .parse()
+        .with_context(|| format!("Failed to parse priority \"{}\"", val))?;
+
+    /* See --priority in swapon(8). */
+    match val {
+        -1..=32767 => Ok(val),
+        _ => Err(anyhow!("Swap priority {} out of range", val)),
+    }
+}
+
 fn verify_mount_point(val: &str) -> Result<PathBuf> {
     let path = PathBuf::from(val);
 
@@ -267,6 +281,10 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
 
         "compression-algorithm" => {
             dev.compression_algorithm = Some(value.to_string());
+        }
+
+        "swap-priority" => {
+            dev.swap_priority = parse_swap_priority(value)?;
         }
 
         "mount-point" => {

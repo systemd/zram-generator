@@ -80,6 +80,12 @@ Devices with the final size of *0* will be discarded.
 
   If unset, none will be configured and the kernel's default will be used.
 
+* `swap-priority`=
+
+  Controls the relative swap priority, a value between -1 and 32767. Higher numbers indicate higher priority.
+
+  If unset, 100 is used.
+
 * `mount-point`=
 
   Format the device with a file system (not as swap) and mount this file system over the specified directory.
