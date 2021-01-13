@@ -66,7 +66,7 @@ It is recommended to use an existing package:
 * Arch: AUR packages https://aur.archlinux.org/packages/zram-generator/ (or
         https://aur.archlinux.org/packages/zram-generator-git/ for the latest git commit)
 
-To install directly from sources, execute `make install`:
+To install directly from sources, execute `make build && make install`:
 * `zram-generator` binary is installed in the systemd system generator directory (usually `/usr/lib/systemd/system-generators/`)
 * `zram-generator(8)` and `zram-generator.conf(5)` manpages are installed into `/usr/share/man/manN/`, this requires [`ronn`](https://github.com/apjanke/ronn-ng).
 * `units/systemd-zram-setup@.service` is copied into the systemd system unit directory (usually `/usr/lib/systemd/system/`)
