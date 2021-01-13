@@ -5,7 +5,6 @@ use anyhow::{anyhow, Context, Result};
 use log::{info, warn};
 use std::cmp;
 use std::fs;
-use std::iter::FromIterator;
 use std::os::unix::fs::symlink;
 use std::path::Path;
 use std::process::Command;
@@ -58,21 +57,31 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
         return Ok(());
     }
 
-    let devices_made: Vec<_> = Result::from_iter(
-        devices
-            .iter()
-            .map(|dev| handle_device(output_directory, dev)),
-    )?;
-    if !devices_made.is_empty() && !fake_mode {
-        /* We created some devices, let's make sure the module is loaded and they exist */
+    for device in devices {
+        handle_device(output_directory, device)?;
+    }
+
+    if !devices.is_empty() && !fake_mode {
+        /* We created some units, let's make sure the module is loaded and the devices exist */
         if !Path::new("/sys/class/zram-control").exists() {
-            Command::new("modprobe")
+            let status = Command::new("modprobe")
                 .arg("zram")
                 .status()
-                .context("modprobe call failed")?;
+                .context("Failed to spawn modprobe")?;
+            if !status.success() {
+                warn!("modprobe zram failed, ignoring: code {}", status);
+            }
         }
 
-        let max_device = devices_made.into_iter().fold(0, cmp::max);
+        let max_device = devices
+            .iter()
+            .map(|device| {
+                device.name[4..]
+                    .parse()
+                    .expect("already verified in read_devices()")
+            })
+            .fold(0, cmp::max);
+
         if !Path::new("/dev")
             .join(format!("zram{}", max_device))
             .exists()
@@ -106,18 +115,12 @@ fn write_contents(output_directory: &Path, filename: &str, contents: &str) -> Re
     fs::write(&path, contents).with_context(|| format!("Failed to write {:?}", path))
 }
 
-fn handle_device(output_directory: &Path, device: &Device) -> Result<u64> {
+fn handle_device(output_directory: &Path, device: &Device) -> Result<()> {
     if device.is_swap() {
-        handle_zram_swap(output_directory, device)?;
+        handle_zram_swap(output_directory, device)
     } else {
-        handle_zram_mount_point(output_directory, device)?;
+        handle_zram_mount_point(output_directory, device)
     }
-
-    /* Return the device number */
-
-    device.name[4..]
-        .parse()
-        .with_context(|| format!("zram device \"{}\" number", device.name))
 }
 
 fn handle_zram_swap(output_directory: &Path, device: &Device) -> Result<()> {
