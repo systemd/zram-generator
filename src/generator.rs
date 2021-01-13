@@ -193,7 +193,7 @@ fn handle_zram_mount_point(output_directory: &Path, device: &Device) -> Result<(
         return Ok(());
     }
 
-    let ref mount_name = mount_unit_name(device.mount_point.as_ref().unwrap());
+    let mount_name = &mount_unit_name(device.mount_point.as_ref().unwrap());
 
     info!(
         "Creating unit {} (/dev/{} with {}MB)",
