@@ -45,6 +45,7 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
         "01-basic" => {
             assert_eq!(devices.len(), 1);
             let d = devices.iter().next().unwrap();
+            assert!(d.is_swap());
             assert_eq!(d.host_memory_limit_mb, None);
             assert_eq!(d.zram_fraction, 0.5);
         }
@@ -52,6 +53,7 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
         "02-zstd" => {
             assert_eq!(devices.len(), 1);
             let d = devices.iter().next().unwrap();
+            assert!(d.is_swap());
             assert_eq!(d.host_memory_limit_mb.unwrap(), 2050);
             assert_eq!(d.zram_fraction, 0.75);
             assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
@@ -65,6 +67,8 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
             assert_eq!(devices.len(), 2);
 
             for d in &devices {
+                assert!(d.is_swap());
+
                 match d.name.as_str() {
                     "zram0" => {
                         assert_eq!(d.host_memory_limit_mb.unwrap(), 1235);
@@ -86,8 +90,34 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
         "06-kernel-enabled" => {
             assert_eq!(devices.len(), 1);
             let d = devices.iter().next().unwrap();
+            assert!(d.is_swap());
             assert_eq!(d.host_memory_limit_mb, None);
             assert_eq!(d.zram_fraction, 0.5);
+        }
+
+        "07-mount-point" => {
+            assert_eq!(devices.len(), 1);
+            let d = devices.iter().next().unwrap();
+            assert!(!d.is_swap());
+            assert_eq!(d.host_memory_limit_mb, None);
+            assert_eq!(d.zram_fraction, 0.5);
+            assert_eq!(
+                d.mount_point.as_ref().unwrap(),
+                Path::new("/var/compressed")
+            );
+            assert_eq!(d.fs_type.as_ref().unwrap(), "ext4");
+            assert_eq!(d.effective_fs_type(), "ext4");
+        }
+
+        "08-plain-device" => {
+            assert_eq!(devices.len(), 1);
+            let d = devices.iter().next().unwrap();
+            assert!(!d.is_swap());
+            assert_eq!(d.host_memory_limit_mb, None);
+            assert_eq!(d.zram_fraction, 0.5);
+            assert!(d.mount_point.is_none());
+            assert_eq!(d.fs_type.as_ref().unwrap(), "ext2");
+            assert_eq!(d.effective_fs_type(), "ext2");
         }
 
         _ => (),
