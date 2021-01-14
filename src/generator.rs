@@ -4,6 +4,7 @@ use crate::config::Device;
 use anyhow::{anyhow, Context, Result};
 use log::{info, warn};
 use std::cmp;
+use std::collections::BTreeSet;
 use std::fs;
 use std::os::unix::fs::symlink;
 use std::path::Path;
@@ -96,7 +97,43 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
         }
     }
 
+    let compressors: BTreeSet<&String> = devices
+        .iter()
+        .flat_map(|device| device.compression_algorithm.as_ref())
+        .collect::<BTreeSet<_>>();
+
+    if !compressors.is_empty() {
+        let known = get_known_compressors()?;
+
+        for comp in compressors.into_iter().filter(|&c| !known.contains(c)) {
+            let status = Command::new("modprobe")
+                .arg(format!("crypto-{}", comp))
+                .status()
+                .context("Failed to spawn modprobe")?;
+            if !status.success() {
+                warn!("modprobe crypto-{} failed, ignoring: code {}", comp, status);
+            }
+        }
+    }
+
     Ok(())
+}
+
+// Returns a list of kernel crypto modules, including available (loaded) compressors
+fn get_known_compressors() -> Result<BTreeSet<String>> {
+    let path = Path::new("/proc/crypto");
+    let content = fs::read_to_string(path).with_context(|| format!("Failed to read {:?}", path))?;
+
+    // Extract algorithm names (this includes non-compression algorithms too)
+    let available = content
+        .lines()
+        .into_iter()
+        .filter(|line| line.starts_with("name"))
+        .map(|m| m.rsplit(':').next().unwrap().trim())
+        .map(String::from)
+        .collect();
+
+    Ok(available)
 }
 
 fn write_contents(output_directory: &Path, filename: &str, contents: &str) -> Result<()> {
