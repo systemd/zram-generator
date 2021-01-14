@@ -103,8 +103,13 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
         .collect();
 
     if !compressors.is_empty() {
-        let proc_crypto =
-            fs::read_to_string("/proc/crypto").context("Failed to read /proc/crypto")?;
+        let proc_crypto = match fs::read_to_string("/proc/crypto") {
+            Ok(string) => string,
+            Err(e) => {
+                warn!("Failed to read /proc/crypto, proceeding as if empty: {}", e);
+                String::from("")
+            }
+        };
         let known = parse_known_compressors(&proc_crypto);
 
         for comp in compressors.difference(&known) {
@@ -113,7 +118,7 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
                 .status()
                 .context("Failed to spawn modprobe")?;
             if !status.success() {
-                warn!("modprobe crypto-{} failed, ignoring: code {}", comp, status);
+                warn!("modprobe crypto-{} failed, ignoring: {}", comp, status);
             }
         }
     }
