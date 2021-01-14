@@ -119,9 +119,7 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
     Ok(())
 }
 
-// Returns a list of kernel crypto modules, including available (loaded) compressors
-fn get_known_compressors() -> Result<BTreeSet<String>> {
-    let path = Path::new("/proc/crypto");
+fn _get_known_compressors(path: &Path) -> Result<BTreeSet<String>> {
     let content = fs::read_to_string(path).with_context(|| format!("Failed to read {:?}", path))?;
 
     // Extract algorithm names (this includes non-compression algorithms too)
@@ -134,6 +132,12 @@ fn get_known_compressors() -> Result<BTreeSet<String>> {
         .collect();
 
     Ok(available)
+}
+
+// Returns a list of names of loaded compressors
+fn get_known_compressors() -> Result<BTreeSet<String>> {
+    let path = Path::new("/proc/crypto");
+    _get_known_compressors(&path)
 }
 
 fn write_contents(output_directory: &Path, filename: &str, contents: &str) -> Result<()> {
@@ -286,4 +290,69 @@ Where={mount_point:?}
     make_symlink(&target_path, &symlink_path)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use std::iter::FromIterator;
+
+    #[test]
+    fn test_get_known_compressors() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+
+        file.write(
+            b"\
+name         : zstd
+driver       : zstd-scomp
+module       : zstd
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : scomp
+
+name         : zstd
+driver       : zstd-generic
+module       : zstd
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : compression
+
+name         : ccm(aes)
+driver       : ccm_base(ctr(aes-aesni),cbcmac(aes-aesni))
+module       : ccm
+priority     : 300
+refcnt       : 2
+selftest     : passed
+internal     : no
+type         : aead
+async        : no
+geniv        : <none>
+
+name         : ctr(aes)
+driver       : ctr(aes-aesni)
+module       : kernel
+priority     : 300
+refcnt       : 2
+selftest     : passed
+internal     : no
+type         : skcipher
+",
+        )
+        .unwrap();
+        file.flush().unwrap();
+        let expected = vec![
+            String::from("zstd"),
+            String::from("ccm(aes)"),
+            String::from("ctr(aes)"),
+        ];
+        assert_eq!(
+            _get_known_compressors(file.path()).unwrap(),
+            BTreeSet::from_iter(expected)
+        );
+    }
 }
