@@ -4,6 +4,7 @@ use crate::config::Device;
 use anyhow::{anyhow, Context, Result};
 use log::{info, warn};
 use std::cmp;
+use std::collections::BTreeSet;
 use std::fs;
 use std::os::unix::fs::symlink;
 use std::path::Path;
@@ -96,7 +97,44 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
         }
     }
 
+    let compressors: BTreeSet<_> = devices
+        .iter()
+        .flat_map(|device| device.compression_algorithm.as_deref())
+        .collect();
+
+    if !compressors.is_empty() {
+        let proc_crypto = match fs::read_to_string("/proc/crypto") {
+            Ok(string) => string,
+            Err(e) => {
+                warn!("Failed to read /proc/crypto, proceeding as if empty: {}", e);
+                String::from("")
+            }
+        };
+        let known = parse_known_compressors(&proc_crypto);
+
+        for comp in compressors.difference(&known) {
+            let status = Command::new("modprobe")
+                .arg(format!("crypto-{}", comp))
+                .status()
+                .context("Failed to spawn modprobe")?;
+            if !status.success() {
+                warn!("modprobe crypto-{} failed, ignoring: {}", comp, status);
+            }
+        }
+    }
+
     Ok(())
+}
+
+// Returns a list of names of loaded compressors
+fn parse_known_compressors(proc_crypto: &str) -> BTreeSet<&str> {
+    // Extract algorithm names (this includes non-compression algorithms too)
+    proc_crypto
+        .lines()
+        .into_iter()
+        .filter(|line| line.starts_with("name"))
+        .map(|m| m.rsplit(':').next().unwrap().trim())
+        .collect()
 }
 
 fn write_contents(output_directory: &Path, filename: &str, contents: &str) -> Result<()> {
@@ -249,4 +287,55 @@ Where={mount_point:?}
     make_symlink(&target_path, &symlink_path)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::iter::FromIterator;
+
+    #[test]
+    fn test_parse_known_compressors() {
+        let data = "\
+name         : zstd
+driver       : zstd-scomp
+module       : zstd
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : scomp
+
+name         : zstd
+driver       : zstd-generic
+module       : zstd
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : compression
+
+name         : ccm(aes)
+driver       : ccm_base(ctr(aes-aesni),cbcmac(aes-aesni))
+module       : ccm
+priority     : 300
+refcnt       : 2
+selftest     : passed
+internal     : no
+type         : aead
+async        : no
+geniv        : <none>
+
+name         : ctr(aes)
+driver       : ctr(aes-aesni)
+module       : kernel
+priority     : 300
+refcnt       : 2
+selftest     : passed
+internal     : no
+type         : skcipher
+";
+        let expected = vec!["zstd", "ccm(aes)", "ctr(aes)"];
+        assert_eq!(parse_known_compressors(data), BTreeSet::from_iter(expected));
+    }
 }
