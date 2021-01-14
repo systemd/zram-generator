@@ -97,15 +97,17 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
         }
     }
 
-    let compressors: BTreeSet<&String> = devices
+    let compressors: BTreeSet<_> = devices
         .iter()
-        .flat_map(|device| device.compression_algorithm.as_ref())
-        .collect::<BTreeSet<_>>();
+        .flat_map(|device| device.compression_algorithm.as_deref())
+        .collect();
 
     if !compressors.is_empty() {
-        let known = get_known_compressors()?;
+        let proc_crypto =
+            fs::read_to_string("/proc/crypto").context("Failed to read /proc/crypto")?;
+        let known = parse_known_compressors(&proc_crypto);
 
-        for comp in compressors.into_iter().filter(|&c| !known.contains(c)) {
+        for comp in compressors.difference(&known) {
             let status = Command::new("modprobe")
                 .arg(format!("crypto-{}", comp))
                 .status()
@@ -119,25 +121,15 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
     Ok(())
 }
 
-fn _get_known_compressors(path: &Path) -> Result<BTreeSet<String>> {
-    let content = fs::read_to_string(path).with_context(|| format!("Failed to read {:?}", path))?;
-
+// Returns a list of names of loaded compressors
+fn parse_known_compressors(proc_crypto: &str) -> BTreeSet<&str> {
     // Extract algorithm names (this includes non-compression algorithms too)
-    let available = content
+    proc_crypto
         .lines()
         .into_iter()
         .filter(|line| line.starts_with("name"))
         .map(|m| m.rsplit(':').next().unwrap().trim())
-        .map(String::from)
-        .collect();
-
-    Ok(available)
-}
-
-// Returns a list of names of loaded compressors
-fn get_known_compressors() -> Result<BTreeSet<String>> {
-    let path = Path::new("/proc/crypto");
-    _get_known_compressors(&path)
+        .collect()
 }
 
 fn write_contents(output_directory: &Path, filename: &str, contents: &str) -> Result<()> {
@@ -295,15 +287,11 @@ Where={mount_point:?}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
     use std::iter::FromIterator;
 
     #[test]
-    fn test_get_known_compressors() {
-        let mut file = tempfile::NamedTempFile::new().unwrap();
-
-        file.write(
-            b"\
+    fn test_parse_known_compressors() {
+        let data = "\
 name         : zstd
 driver       : zstd-scomp
 module       : zstd
@@ -341,18 +329,8 @@ refcnt       : 2
 selftest     : passed
 internal     : no
 type         : skcipher
-",
-        )
-        .unwrap();
-        file.flush().unwrap();
-        let expected = vec![
-            String::from("zstd"),
-            String::from("ccm(aes)"),
-            String::from("ctr(aes)"),
-        ];
-        assert_eq!(
-            _get_known_compressors(file.path()).unwrap(),
-            BTreeSet::from_iter(expected)
-        );
+";
+        let expected = vec!["zstd", "ccm(aes)", "ctr(aes)"];
+        assert_eq!(parse_known_compressors(data), BTreeSet::from_iter(expected));
     }
 }
