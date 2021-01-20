@@ -91,9 +91,13 @@ Devices with the final size of *0* will be discarded.
   Format the device with a file system (not as swap) and mount this file system over the specified directory.
   When neither this option nor `fs-type`= is specified, the device will be formatted as swap.
 
+  Note that the device is temporary: contents will be destroyed automatically after the file system is unmounted (to release the backing memory).
+
 * `fs-type`=
 
   Specifies how the device shall be formatted. The default is *ext2* if `mount-point` is specified, and *swap* otherwise. (Effectively, the device will be formatted as swap, if neither `fs-type`= nor `mount-point`= are specified.)
+
+  Note that the device is temporary: contents will be destroyed automatically after the file system is unmounted (to release the backing memory).
 
   Also see systemd-makefs(8).
 
