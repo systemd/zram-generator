@@ -18,6 +18,7 @@ clap = { version = "2.33", default-features = false }
 liboverdrop = "0.0.2"
 rust-ini = ">=0.13, <0.18"
 log = { version = "0.4", features = ["std"] }
+fasteval = { version = "0.2", default-features = false }
 
 [dev-dependencies]
 tempfile = "3"

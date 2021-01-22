@@ -11,22 +11,13 @@
 # is also the default.
 host-memory-limit = 9048
 
-# The fraction of memory to use as ZRAM. For example, if the machine
-# has 1 GiB, and zram-fraction=0.25, then the zram device will have
-# 256 MiB. Values in the range 0.10–0.50 are recommended.
+# The size of the zram device, as a function of MemTotal, both in MB.
+# For example, if the machine has 1 GiB, and zram-size=ram/4,
+# then the zram device will have 256 MiB.
+# Fractions in the range 0.1–0.5 are recommended.
 #
-# The default is 0.5.
-zram-fraction = 0.10
-
-# The maximum size of the zram device (in MiB).
-#
-# If host-memory times zram-fraction is greater than this,
-# the size will be capped to this amount;
-# for example, on a machine with 2 GiB of RAM and with zram-fraction=0.5,
-# the device would still be 512 MiB in size due to the limit below.
-#
-# The default is 4096.
-max-zram-size = 512
+# The default is "min(ram / 2, 4096)".
+zram-size = min(ram / 10, 2048)
 
 # The compression algorithm to use for the zram device,
 # or leave unspecified to keep the kernel default.
@@ -37,13 +28,34 @@ compression-algorithm = lzo-rle
 # Setting this to the empty string clears the option.
 options =
 
+
+# The following options are deprecated, and override zram-size.
+
+# The fraction of memory to use as ZRAM. For example, if the machine
+# has 1 GiB, and zram-fraction=0.25, then the zram device will have
+# 256 MiB. Values in the range 0.10–0.50 are recommended.
+#
+# The default was 0.5.
+#zram-fraction = 0.10
+
+# The maximum size of the zram device (in MiB).
+#
+# If host-memory times zram-fraction is greater than this,
+# the size was capped to this amount;
+# for example, on a machine with 2 GiB of RAM and with zram-fraction=0.5,
+# the device would still be 512 MiB in size due to the limit below.
+#
+# The default was 4096.
+#max-zram-size = 512
+
+
 [zram1]
 # This section describes the settings for /dev/zram1.
 #
 # host-memory-limit is not specified, so this device will always be created.
 
 # Size the device to a tenth of RAM.
-zram-fraction = 0.1
+zram-size = ram / 10
 
 # The file system to put on the device. If not specified, ext2 will be used.
 fs-type = ext2

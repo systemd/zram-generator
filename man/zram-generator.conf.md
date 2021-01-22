@@ -57,21 +57,13 @@ Devices with the final size of *0* will be discarded.
   For compatibility with earlier versions, `memory-limit` is allowed as an alias for this option.
   Its use is discouraged, and administrators should migrate to `host-memory-limit`.
 
-* `zram-fraction`=
+* `zram-size`=
 
-  Defines the scaling factor of the zram device's size with relation to the total usable RAM.
+  Sets the size of the zram device as a function of *MemTotal*, available as the `ram` variable.
 
-  This takes a nonnegative floating-point number representing that factor.
+  Arithmetic operators (^%/\*-+), e, π, SI suffixes, log(), int(), ceil(), floor(), round(), abs(), min(), max(), and trigonometric functions are supported.
 
-  Defaults to *0.5*.
-
-* `max-zram-size`=
-
-  Sets the limit on the zram device's size obtained by `zram-fraction`.
-
-  This takes a nonnegative number, representing that limit in megabytes, or the literal string *none*, which can be used to override a limit set earlier.
-
-  Defaults to *4096*.
+  Defaults to *min(ram / 2, 4096)*.
 
 * `compression-algorithm`=
 
@@ -109,6 +101,22 @@ Devices with the final size of *0* will be discarded.
 
   Defaults to *discard*.
 
+* `zram-fraction`= (deprecated)
+
+  Defines the scaling factor of the zram device's size with relation to the total usable RAM.
+
+  This takes a nonnegative floating-point number representing that factor.
+
+  Defaulted to *0.5*. Setting this or `max-zram-size` overrides `zram-size`.
+
+* `max-zram-size`= (deprecated)
+
+  Sets the limit on the zram device's size obtained by `zram-fraction`.
+
+  This takes a nonnegative number, representing that limit in megabytes, or the literal string *none*, which can be used to override a limit set earlier.
+
+  Defaulted to *4096*. Setting this or `zram-fraction` overrides `zram-size`.
+
 ## ENVIRONMENT VARIABLES
 
 Setting `ZRAM_GENERATOR_ROOT` during parsing will cause */proc/meminfo* to be read from *$ZRAM_GENERATOR_ROOT/proc/meminfo* instead,
@@ -118,7 +126,7 @@ and *{/usr/lib,/usr/local/lib,/etc,/run}/systemd/zram-generator.conf* to be read
 
 The default configuration will yield the following:
 
-     zram device size [MB]
+     zram device size
          ^
          │
       4G>│               ooooooooooooo
@@ -129,9 +137,35 @@ The default configuration will yield the following:
          │     o
          │   o
     512M>│ o
-         0───────────────────────> total usable RAM [MB]
+         0───────────────────────> total usable RAM
            ^     ^       ^
            1G    4G      8G
+
+A piecewise-linear size 1:1 for the first 4G, then 1:2 above, up to a max of 32G:<br />
+&nbsp;&nbsp;`zram-size = min(min(ram, 4096) + max(ram - 4096, 0) / 2, 32 * 1024)`
+
+     zram device size
+         ^
+     32G>│                                                oooooooooo
+         │                                            o
+     30G>│                                        o
+         │                                    o
+        /=/
+         │                               o
+      8G>│                           o
+         │                       o
+         │                   o
+         │               o
+         │           o
+      4G>│       o
+         │     o
+         │   o
+      1G>│ o
+         0───────────────────────────────────||──────────────────────> total usable RAM
+           ^     ^       ^               ^        ^       ^       ^
+           1G    4G      8G             12G      56G     60G     64G
+
+
 
 ## REPORTING BUGS
 
@@ -145,3 +179,5 @@ zram-generator(8), systemd.syntax(5), proc(5)
 
 Linux documentation of zram: <https://kernel.org/doc/html/latest/admin-guide/blockdev/zram.html><br />
      and the zram sysfs ABI: <https://kernel.org/doc/Documentation/ABI/testing/sysfs-block-zram>
+
+`fasteval` documentation for the entire `zram-size` arithmetic DSL: <https://docs.rs/fasteval/0.2.4/fasteval/#the-fasteval-expression-mini-language>

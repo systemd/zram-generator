@@ -66,6 +66,10 @@ fn test_generation(path: &str) -> Result<Vec<config::Device>> {
     Ok(devices)
 }
 
+fn z_s_name(zram_size: &(String, fasteval::ExpressionI, fasteval::Slab)) -> &str {
+    &zram_size.0
+}
+
 #[test]
 fn test_01_basic() {
     let devices = test_generation("tests/01-basic").unwrap();
@@ -73,7 +77,8 @@ fn test_01_basic() {
     let d = devices.iter().next().unwrap();
     assert!(d.is_swap());
     assert_eq!(d.host_memory_limit_mb, None);
-    assert_eq!(d.zram_fraction, 0.5);
+    assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
+    assert_eq!(d.zram_fraction, None);
     assert_eq!(d.options, "discard");
 }
 
@@ -83,8 +88,9 @@ fn test_02_zstd() {
     assert_eq!(devices.len(), 1);
     let d = devices.iter().next().unwrap();
     assert!(d.is_swap());
-    assert_eq!(d.host_memory_limit_mb.unwrap(), 2050);
-    assert_eq!(d.zram_fraction, 0.75);
+    assert_eq!(d.host_memory_limit_mb, Some(2050));
+    assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
+    assert_eq!(d.zram_fraction, Some(0.75));
     assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
     assert_eq!(d.options, "discard");
 }
@@ -103,15 +109,17 @@ fn test_04_dropins() {
     for d in &devices {
         assert!(d.is_swap());
 
-        match d.name.as_str() {
+        match &d.name[..] {
             "zram0" => {
-                assert_eq!(d.host_memory_limit_mb.unwrap(), 1235);
-                assert_eq!(d.zram_fraction, 0.5);
+                assert_eq!(d.host_memory_limit_mb, Some(1235));
+                assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
+                assert_eq!(d.zram_fraction, None);
                 assert_eq!(d.options, "discard");
             }
             "zram2" => {
-                assert!(d.host_memory_limit_mb.is_none());
-                assert_eq!(d.zram_fraction, 0.8);
+                assert_eq!(d.host_memory_limit_mb, None);
+                assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
+                assert_eq!(d.zram_fraction, Some(0.8));
                 assert_eq!(d.options, "");
             }
             _ => panic!("Unexpected device {}", d),
@@ -132,7 +140,8 @@ fn test_06_kernel_enabled() {
     let d = devices.iter().next().unwrap();
     assert!(d.is_swap());
     assert_eq!(d.host_memory_limit_mb, None);
-    assert_eq!(d.zram_fraction, 0.5);
+    assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
+    assert_eq!(d.zram_fraction, None);
     assert_eq!(d.options, "discard");
 }
 
@@ -160,7 +169,8 @@ fn test_07_devices(devices: Vec<config::Device>) {
     for d in &devices {
         assert!(!d.is_swap());
         assert_eq!(d.host_memory_limit_mb, None);
-        assert_eq!(d.zram_fraction, 0.5);
+        assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
+        assert_eq!(d.zram_fraction, None);
         assert_eq!(d.fs_type.as_ref().unwrap(), "ext4");
         assert_eq!(d.effective_fs_type(), "ext4");
         match &d.name[..] {
@@ -199,11 +209,28 @@ fn test_08_plain_device() {
     let d = devices.iter().next().unwrap();
     assert!(!d.is_swap());
     assert_eq!(d.host_memory_limit_mb, None);
-    assert_eq!(d.zram_fraction, 0.5);
+    assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
+    assert_eq!(d.zram_fraction, None);
     assert!(d.mount_point.is_none());
     assert_eq!(d.fs_type.as_ref().unwrap(), "ext2");
     assert_eq!(d.effective_fs_type(), "ext2");
     assert_eq!(d.options, "discard");
+}
+
+#[test]
+fn test_09_zram_size() {
+    let devices = test_generation("tests/09-zram-size").unwrap();
+    assert_eq!(devices.len(), 1);
+    let d = devices.iter().next().unwrap();
+    assert!(d.is_swap());
+    assert_eq!(d.host_memory_limit_mb, Some(2050));
+    assert_eq!(
+        d.zram_size.as_ref().map(z_s_name),
+        Some("min(0.75 * ram, 6000)")
+    );
+    assert_eq!(d.zram_fraction, None);
+    assert_eq!(d.max_zram_size_mb, None);
+    assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
 }
 
 #[test]
@@ -222,17 +249,22 @@ fn test_10_example() {
         match d.name.as_str() {
             "zram0" => {
                 assert!(d.is_swap());
-                assert_eq!(d.host_memory_limit_mb.unwrap(), 9048);
-                assert_eq!(d.zram_fraction, 0.10);
-                assert_eq!(d.max_zram_size_mb, Some(512));
+                assert_eq!(d.host_memory_limit_mb, Some(9048));
+                assert_eq!(
+                    d.zram_size.as_ref().map(z_s_name),
+                    Some("min(ram / 10, 2048)")
+                );
+                assert_eq!(d.zram_fraction, None);
+                assert_eq!(d.max_zram_size_mb, None);
                 assert_eq!(d.compression_algorithm.as_deref(), Some("lzo-rle"));
                 assert_eq!(d.options, "");
             }
             "zram1" => {
                 assert_eq!(d.fs_type.as_ref().unwrap(), "ext2");
                 assert_eq!(d.effective_fs_type(), "ext2");
-                assert!(d.host_memory_limit_mb.is_none());
-                assert_eq!(d.zram_fraction, 0.1);
+                assert_eq!(d.zram_size.as_ref().map(z_s_name), Some("ram / 10"));
+                assert_eq!(d.zram_fraction, None);
+                assert_eq!(d.max_zram_size_mb, None);
                 assert_eq!(d.options, "discard");
             }
             _ => panic!("Unexpected device {}", d),
