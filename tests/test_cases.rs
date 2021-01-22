@@ -120,6 +120,16 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
             assert_eq!(d.effective_fs_type(), "ext2");
         }
 
+        "09-zram-size" => {
+            assert_eq!(devices.len(), 1);
+            let d = devices.iter().next().unwrap();
+            assert!(d.is_swap());
+            assert_eq!(d.host_memory_limit_mb.unwrap(), 2050);
+            assert_eq!(d.zram_fraction, 0.5);
+            assert_eq!(d.zram_size.as_ref().unwrap(), "min(0.75 * ram, 6000)");
+            assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
+        }
+
         _ => (),
     }
 
@@ -180,4 +190,9 @@ fn test_07_mount_point() {
 #[test]
 fn test_08_plain_device() {
     test_generation("08-plain-device").unwrap();
+}
+
+#[test]
+fn test_09_zram_size() {
+    test_generation("09-zram-size").unwrap();
 }

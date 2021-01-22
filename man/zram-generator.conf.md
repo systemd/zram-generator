@@ -71,6 +71,21 @@ Devices with the final size of *0* will be discarded.
 
   Defaults to *4096*.
 
+* `zram-size`=
+
+  An alternative way to set the zram device size as a mathematical expressoin
+  that can be used instead of `zram-fraction` and `max-zram-size`. Basic arithmetic
+  operators like `*`, `+`, `-`, `/`, are supported, as well as `min()` and `max()`
+  and the variable `ram` which specifies size of RAM in megabytes.
+
+  Examples:
+
+       # this is the same as the default config
+       zram-size = min(0.5 * ram, 4096)
+
+       # fraction 1.0 for first 4GB, and then fraction 0.5 above that
+       zram-size = 1.0 * min(ram, 4096) + 0.5 * max(ram - 4096, 0)
+
 * `compression-algorithm`=
 
   Specifies the algorithm used to compress the zram device.
@@ -124,6 +139,28 @@ The default configuration will yield the following:
          0───────────────────────> total usable RAM [MB]
            ^     ^       ^
            1G    4G      8G
+
+The other example gives above:
+
+    # fraction 1.0 for first 4GB, and then fraction 0.5 above that
+    zram-size = 1.0 * min(ram, 4096) + 0.5 * max(ram - 4096, 0)
+
+     zram device size [MB]
+         ^
+         │                           o
+      8G>│                       o
+         │                   o
+         │               o
+         │           o
+      4G>│       o
+         │     o
+         │   o
+      1G>│ o
+         0───────────────────────> total usable RAM [MB]
+           ^     ^       ^
+           1G    4G      8G
+
+
 
 ## REPORTING BUGS
 
