@@ -2,10 +2,11 @@
 
 use crate::config::Device;
 use anyhow::{anyhow, Context, Result};
-use log::{info, warn};
+use log::{info, log, warn, Level};
 use std::cmp;
 use std::collections::BTreeSet;
 use std::fs;
+use std::io;
 use std::os::unix::fs::symlink;
 use std::path::Path;
 use std::process::Command;
@@ -47,6 +48,30 @@ fn virtualization_container() -> Result<bool> {
     }
 }
 
+fn modprobe(modname: &str, required: bool) {
+    let status = Command::new("modprobe").arg(modname).status();
+    match status {
+        Err(e) => {
+            let level = match !required && e.kind() == io::ErrorKind::NotFound {
+                true => Level::Debug,
+                false => Level::Warn,
+            };
+
+            log!(
+                level,
+                "modprobe \"{}\" cannot be spawned, ignoring: {}",
+                modname,
+                e
+            );
+        }
+        Ok(status) => {
+            if !status.success() {
+                warn!("modprobe \"{}\" failed, ignoring: code {}", modname, status);
+            }
+        }
+    };
+}
+
 pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: bool) -> Result<()> {
     if devices.is_empty() {
         info!("No devices configured, exiting.");
@@ -65,13 +90,7 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
     if !devices.is_empty() && !fake_mode {
         /* We created some units, let's make sure the module is loaded and the devices exist */
         if !Path::new("/sys/class/zram-control").exists() {
-            let status = Command::new("modprobe")
-                .arg("zram")
-                .status()
-                .context("Failed to spawn modprobe")?;
-            if !status.success() {
-                warn!("modprobe zram failed, ignoring: code {}", status);
-            }
+            modprobe("zram", true);
         }
 
         let max_device = devices
@@ -113,13 +132,7 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
         let known = parse_known_compressors(&proc_crypto);
 
         for comp in compressors.difference(&known) {
-            let status = Command::new("modprobe")
-                .arg(format!("crypto-{}", comp))
-                .status()
-                .context("Failed to spawn modprobe")?;
-            if !status.success() {
-                warn!("modprobe crypto-{} failed, ignoring: {}", comp, status);
-            }
+            modprobe(&format!("crypto-{}", comp), false);
         }
     }
 
