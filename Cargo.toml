@@ -10,7 +10,7 @@ homepage = "https://github.com/systemd/zram-generator"
 edition = "2018"
 
 [dependencies]
-anyhow = ">=1.0.12, <1.0.39"
+anyhow = "1.0.12"
 clap = { version = "2.33", default-features = false }
 liboverdrop = "0.0.2"
 rust-ini = ">=0.13, <0.17"
@@ -18,7 +18,7 @@ log = { version = "0.4", features = ["std"] }
 
 [dev-dependencies]
 tempfile = "3"
-fs_extra = ">=1.1, <1.3"
+fs_extra = "1.1"
 
 [profile.release]
 lto = true
