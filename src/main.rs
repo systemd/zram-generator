@@ -17,9 +17,9 @@ enum Opts {
     /// Generate units into the directory
     GenerateUnits(String),
     /// Set up a single device
-    SetupDevice(String),
+    SetupDevice(Box<str>),
     /// Reset (destroy) a device
-    ResetDevice(String),
+    ResetDevice(Box<str>),
 }
 
 fn get_opts() -> Opts {
@@ -43,16 +43,13 @@ fn get_opts() -> Opts {
         )
         .get_matches();
 
-    let val = opts
-        .value_of("directory/device")
-        .expect("clap invariant")
-        .to_string();
+    let val = opts.value_of("directory/device").expect("clap invariant");
     if opts.is_present("setup-device") {
-        Opts::SetupDevice(val)
+        Opts::SetupDevice(val.into())
     } else if opts.is_present("reset-device") {
-        Opts::ResetDevice(val)
+        Opts::ResetDevice(val.into())
     } else {
-        Opts::GenerateUnits(val)
+        Opts::GenerateUnits(val.to_string())
     }
 }
 
