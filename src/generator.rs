@@ -2,7 +2,7 @@
 
 use crate::config::Device;
 use anyhow::{anyhow, Context, Result};
-use log::{info, log, warn, Level};
+use log::{debug, log, warn, Level};
 use std::cmp;
 use std::collections::BTreeSet;
 use std::fs;
@@ -74,12 +74,12 @@ fn modprobe(modname: &str, required: bool) {
 
 pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: bool) -> Result<()> {
     if devices.is_empty() {
-        info!("No devices configured, exiting.");
+        debug!("No devices configured, exiting.");
         return Ok(());
     }
 
     if virtualization_container()? && !fake_mode {
-        info!("Running in a container, exiting.");
+        debug!("Running in a container, exiting.");
         return Ok(());
     }
 
@@ -177,8 +177,8 @@ fn handle_device(output_directory: &Path, device: &Device) -> Result<()> {
 fn handle_zram_swap(output_directory: &Path, device: &Device) -> Result<()> {
     let swap_name = format!("dev-{}.swap", device.name);
 
-    info!(
-        "Creating unit {} (/dev/{} with {}MB)",
+    debug!(
+        "Creating unit file {} (/dev/{} with {}MB)",
         swap_name,
         device.name,
         device.disksize / 1024 / 1024
@@ -246,8 +246,8 @@ fn handle_zram_mount_point(output_directory: &Path, device: &Device) -> Result<(
 
     let mount_name = &mount_unit_name(device.mount_point.as_ref().unwrap());
 
-    info!(
-        "Creating unit {} (/dev/{} with {}MB)",
+    debug!(
+        "Creating unit file {} (/dev/{} with {}MB)",
         mount_name,
         device.name,
         device.disksize / 1024 / 1024
