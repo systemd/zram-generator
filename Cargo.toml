@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 [package]
 name = "zram-generator"
 version = "0.3.1"

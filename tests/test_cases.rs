@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+
 use zram_generator::{config, generator};
 
 use anyhow::Result;

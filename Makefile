@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 INSTALL = install
 CARGO = cargo
 CARGOFLAGS =
