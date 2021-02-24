@@ -1,3 +1,6 @@
+
+[comment]: SPDX-License-Identifier: MIT
+
 zram-generator(8) -- Systemd unit generator for zram swap devices
 =================================================================
 

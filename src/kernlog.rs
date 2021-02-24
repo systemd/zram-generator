@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MIT */
 //! Logger implementation for low level kernel log (using `/dev/kmsg`)
 //!
 //! Borrowed and cut down from https://github.com/kstep/kernlog.rs/pull/2,
