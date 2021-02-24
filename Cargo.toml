@@ -2,7 +2,7 @@
 
 [package]
 name = "zram-generator"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl>",
            "Igor Raits <i.gnatenko.brain@gmail.com>",
            "наб <nabijaczleweli@gmail.com>"]
