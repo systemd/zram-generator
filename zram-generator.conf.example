@@ -30,6 +30,7 @@ max-zram-size = 512
 
 # The compression algorithm to use for the zram device,
 # or leave unspecified to keep the kernel default.
+# You can choose: lzo lzo-rle lz4 lz4hc 842 zstd
 compression-algorithm = lzo-rle
 
 [zram1]
