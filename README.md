@@ -63,8 +63,7 @@ It is recommended to use an existing package:
 
 * Fedora: `sudo dnf install zram-generator-defaults` (or `sudo dnf install zram-generator` to install without the default configuration)
 * Debian: packages provided by nabijaczleweli, see https://debian.nabijaczleweli.xyz/README.
-* Arch: AUR packages https://aur.archlinux.org/packages/zram-generator/ (or
-        https://aur.archlinux.org/packages/zram-generator-git/ for the latest git commit)
+* Arch: `sudo pacman -S zram-generator` (or https://aur.archlinux.org/packages/zram-generator-git/ for the latest git commit)
 
 To install directly from sources, execute `make build && sudo make install`:
 * `zram-generator` binary is installed in the systemd system generator directory (usually `/usr/lib/systemd/system-generators/`)
