@@ -15,7 +15,7 @@ edition = "2018"
 anyhow = "1.0.12"
 clap = { version = "2.33", default-features = false }
 liboverdrop = "0.0.2"
-rust-ini = ">=0.13, <0.17"
+rust-ini = ">=0.13, <0.18"
 log = { version = "0.4", features = ["std"] }
 
 [dev-dependencies]
