@@ -10,6 +10,7 @@ use clap::{crate_description, crate_name, crate_version, App, Arg};
 use log::{info, LevelFilter};
 use std::borrow::Cow;
 use std::env;
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
@@ -57,12 +58,11 @@ fn get_opts() -> Opts {
 }
 
 fn main() -> Result<()> {
-    let (root, have_env_var, log_level) = match env::var("ZRAM_GENERATOR_ROOT") {
-        Ok(val) => (val.into(), true, LevelFilter::Trace),
-        Err(env::VarError::NotPresent) => (Cow::from("/"), false, LevelFilter::Info),
-        Err(e) => return Err(e.into()),
+    let (root, have_env_var, log_level) = match env::var_os("ZRAM_GENERATOR_ROOT") {
+        Some(val) => (val.into(), true, LevelFilter::Trace),
+        None => (Cow::from(OsStr::new("/")), false, LevelFilter::Info),
     };
-    let root = Path::new(&root[..]);
+    let root = Path::new(&root);
 
     let _ = kernlog::init_with_level(log_level);
 
