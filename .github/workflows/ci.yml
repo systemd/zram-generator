@@ -30,11 +30,11 @@ jobs:
           override: true
           profile: minimal
       - name: Build
-        run: make build CARGOFLAGS="--verbose"
+        run: make program CARGOFLAGS="--verbose"
       - name: Insert zram module
         run: sudo modprobe -v zram
       - name: Run tests
-        run: make check CARGOFLAGS="--verbose"
+        run: make program CARGOFLAGS="--verbose"
 
   rustfmt:
     name: rustfmt
