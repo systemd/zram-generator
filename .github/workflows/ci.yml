@@ -23,6 +23,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      - name: Install linux-modules-extra-azure
+        run: |
+          sudo apt update
+          sudo apt install -y linux-modules-extra-azure
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -30,11 +34,11 @@ jobs:
           override: true
           profile: minimal
       - name: Build
-        run: make build CARGOFLAGS="--verbose"
+        run: CARGOFLAGS="--verbose" make build
       - name: Insert zram module
         run: sudo modprobe -v zram
       - name: Run tests
-        run: make check CARGOFLAGS="--verbose"
+        run: CARGOFLAGS="--verbose" make test
 
   rustfmt:
     name: rustfmt
