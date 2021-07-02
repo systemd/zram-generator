@@ -13,12 +13,14 @@ SYSTEMD_SYSTEM_GENERATOR_DIR := $(shell $(PKG_CONFIG) --variable=systemdsystemge
 export SYSTEMD_UTIL_DIR
 
 .DEFAULT: build
-.PHONY: build man check clean install
+.PHONY: build systemd-service program man check clean install
 
-build: systemd_service
+build: program systemd-service man
+
+program:
 	@$(CARGO) build --release $(CARGOFLAGS)
 
-systemd_service:
+systemd-service:
 	@sed -e 's,@SYSTEMD_SYSTEM_GENERATOR_DIR@,$(SYSTEMD_SYSTEM_GENERATOR_DIR),' \
 		< units/systemd-zram-setup@.service.in \
 		> units/systemd-zram-setup@.service
@@ -26,14 +28,14 @@ systemd_service:
 man:
 	@$(RONN) --organization="zram-generator developers" man/*.md
 
-check: build
+check: program
 	@$(CARGO) test --release $(CARGOFLAGS)
 
 clean:
 	@$(CARGO) clean
 	@rm -f units/systemd-zram-setup@.service
 
-install:
+install: build
 	$(INSTALL) -Dpm755 target/release/zram-generator -t $(DESTDIR)$(SYSTEMD_SYSTEM_GENERATOR_DIR)/
 	$(INSTALL) -Dpm644 units/systemd-zram-setup@.service -t $(DESTDIR)$(SYSTEMD_SYSTEM_UNIT_DIR)/
 	$(INSTALL) -Dpm644 zram-generator.conf.example -t $(DESTDIR)$(PREFIX)/share/doc/zram-generator/
