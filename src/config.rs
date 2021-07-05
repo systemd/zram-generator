@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 
 use anyhow::{anyhow, Context, Result};
+use eval::Expr;
 use ini::Ini;
 use liboverdrop::FragmentScanner;
 use log::{info, warn};
@@ -18,6 +19,7 @@ pub struct Device {
 
     pub zram_fraction: f64,
     pub max_zram_size_mb: Option<u64>,
+    pub zram_size: Option<String>,
     pub compression_algorithm: Option<String>,
     pub disksize: u64,
 
@@ -34,6 +36,7 @@ impl Device {
             host_memory_limit_mb: None,
             zram_fraction: 0.5,
             max_zram_size_mb: Some(4 * 1024),
+            zram_size: None,
             compression_algorithm: None,
             disksize: 0,
             swap_priority: 100,
@@ -84,15 +87,22 @@ impl Device {
         }
     }
 
-    fn set_disksize_if_enabled(&mut self, memtotal_mb: u64) {
+    fn set_disksize_if_enabled(&mut self, memtotal_mb: u64) -> Result<()> {
         if !self.is_enabled(memtotal_mb) {
-            return;
+            return Ok(());
         }
 
-        self.disksize = (self.zram_fraction * memtotal_mb as f64) as u64 * 1024 * 1024;
+        let disksize = match &self.zram_size {
+            Some(expr) => eval_size_expression("zram-size", &expr, memtotal_mb)?,
+            None => self.zram_fraction * memtotal_mb as f64,
+        };
+        self.disksize = (disksize * 1024. * 1024.) as u64;
+
         if let Some(max_mb) = self.max_zram_size_mb {
             self.disksize = cmp::min(self.disksize, max_mb * 1024 * 1024);
         }
+
+        Ok(())
     }
 }
 
@@ -182,7 +192,7 @@ fn read_devices(
     }
 
     for dev in devices.values_mut() {
-        dev.set_disksize_if_enabled(memtotal_mb);
+        dev.set_disksize_if_enabled(memtotal_mb)?;
     }
 
     Ok(devices)
@@ -279,6 +289,13 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
             dev.max_zram_size_mb = parse_optional_size(value)?;
         }
 
+        "zram-size" => {
+            /* We don't know the actual RAM size yet.
+             * The expression is evaluated with a fake value to check syntax. */
+            let _ = eval_size_expression(key, value, 1024)?;
+            dev.zram_size = Some(value.to_string());
+        }
+
         "compression-algorithm" => {
             dev.compression_algorithm = Some(value.to_string());
         }
@@ -362,6 +379,19 @@ pub fn kernel_zram_option(root: &Path) -> Option<bool> {
             None
         }
     }
+}
+
+pub fn eval_size_expression(key: &str, expr: &str, ram_size: u64) -> Result<f64> {
+    let x = Expr::new(expr)
+        .value("ram", ram_size)
+        .exec()
+        .with_context(|| format!("{}: expression \"{}\" cannot be evaluated", key, expr))?;
+    x.as_f64().with_context(|| {
+        format!(
+            "{}: expression evaluated to \"{}\", which is not a number",
+            key, x
+        )
+    })
 }
 
 #[cfg(test)]
@@ -461,5 +491,38 @@ foo=0
     #[test]
     fn test_verify_mount_point_self() {
         verify_mount_point("/foo/./bar/").unwrap();
+    }
+
+    #[test]
+    fn test_eval_size_expression() {
+        let x = eval_size_expression("test", "0.5 * ram", 100).unwrap();
+        assert_eq!(x, 50.);
+    }
+
+    #[test]
+    #[should_panic(expected = "not a number")]
+    fn test_eval_size_expression_array() {
+        let x = eval_size_expression("test", "array(1,2)", 100).unwrap();
+        assert_eq!(x, 50.);
+    }
+
+    #[test]
+    #[should_panic(expected = "not a number")]
+    fn test_eval_size_expression_nan() {
+        let x = eval_size_expression("test", "(ram-100)/0", 100).unwrap();
+        assert_eq!(x, 50.);
+    }
+
+    #[test]
+    #[should_panic(expected = "not a number")] // This is just sad. This is clearly +∞
+    fn test_eval_size_expression_inf() {
+        let x = eval_size_expression("test", "(ram-99)/0", 100).unwrap();
+        assert_eq!(x, 50.);
+    }
+
+    #[test]
+    fn test_eval_size_expression_min() {
+        let x = eval_size_expression("test", "min(0.5 * ram, 4000)", 3000).unwrap();
+        assert_eq!(x, 1500.);
     }
 }
