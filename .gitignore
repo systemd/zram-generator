@@ -1,4 +1,6 @@
+**/*.rs.bk
 *~
+/.cargo/config.toml
 /Cargo.lock
 /target
-**/*.rs.bk
+/vendor
