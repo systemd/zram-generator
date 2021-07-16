@@ -1,0 +1,8 @@
+zram-generator (0.3.2+git20210726-1) UNRELEASED; urgency=medium
+
+  * Initial release.
+  * Split package into `zram-generator` and `zram-generator-defaults`.
+  * Clone default configuration from https://src.fedoraproject.org/rpms/rust-zram-generator/blob/rawhide/f/zram-generator.conf
+  * Add `mount-options` support.
+
+ -- Wong Hoi Sing Edison <hswong3i@gmail.com>  Mon, 26 Jul 2021 12:54:34 +0800

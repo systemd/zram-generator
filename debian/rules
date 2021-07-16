@@ -1,0 +1,30 @@
+#!/usr/bin/make -f
+
+
+CARGO ?= cargo
+
+DESTDIR = $(CURDIR)/debian/zram-generator/
+UTILDIR := $(shell pkg-config --variable=systemdutildir systemd)
+VERSION = $(shell awk '/^version/ {print $$3}' Cargo.toml | sed 's/"//g')
+
+
+override_dh_auto_build:
+	$(MAKE) bin systemd
+
+override_dh_auto_test:
+	SYSTEMD_UTIL_DIR=$(UTILDIR) RUSTFLAGS=-g $(MAKE) test
+
+override_dh_auto_install:
+	DESTDIR="$(DESTDIR)" $(MAKE) install.bin install.conf install.systemd
+	rm -rf "$(DESTDIR)usr/share/doc/zram-generator"
+	rm -rf "$(DESTDIR)lib/systemd/generators/zram-generator"
+	dh_install
+
+override_dh_auto_clean:
+	$(MAKE) clean
+
+override_dh_installdocs:
+	dh_installdocs $(wildcard TODO) README.md
+
+%:
+	dh $@

@@ -1,0 +1,2 @@
+# The executable is in /usr/lib/systemd/system-generators with manpage in section 8, just like all the other systemd generators
+zram-generator: manpage-without-executable
