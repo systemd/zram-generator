@@ -1,0 +1,7 @@
+zram-generator (0.3.2+main-7) hirsute; urgency=medium
+
+  * Initial release.
+  * Split package into `zram-generator` and `zram-generator-defaults`.
+  * Clone default configuration from https://src.fedoraproject.org/rpms/rust-zram-generator/blob/rawhide/f/zram-generator.conf
+
+ -- Wong Hoi Sing Edison <hswong3i@gmail.com>  Fri, 16 Jul 2021 16:36:53 +0800
