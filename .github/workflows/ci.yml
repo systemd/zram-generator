@@ -23,6 +23,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      - name: Install linux-modules-extra-$(uname -r)
+        run: |
+          sudo apt update
+          sudo apt install -y linux-modules-extra-$(uname -r)
+      - name: Insert zram module
+        run: sudo modprobe -v zram
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -31,8 +37,6 @@ jobs:
           profile: minimal
       - name: Build
         run: make build CARGOFLAGS="--verbose"
-      - name: Insert zram module
-        run: sudo modprobe -v zram
       - name: Run tests
         run: make check CARGOFLAGS="--verbose"
 
