@@ -97,21 +97,7 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
             assert_eq!(d.zram_fraction, 0.5);
         }
 
-        "07-mount-point" => {
-            assert_eq!(devices.len(), 1);
-            let d = devices.iter().next().unwrap();
-            assert!(!d.is_swap());
-            assert_eq!(d.host_memory_limit_mb, None);
-            assert_eq!(d.zram_fraction, 0.5);
-            assert_eq!(
-                d.mount_point.as_ref().unwrap(),
-                Path::new("/var/compressed")
-            );
-            assert_eq!(d.fs_type.as_ref().unwrap(), "ext4");
-            assert_eq!(d.effective_fs_type(), "ext4");
-        }
-
-        "08-plain-device" => {
+        "07-plain-device" => {
             assert_eq!(devices.len(), 1);
             let d = devices.iter().next().unwrap();
             assert!(!d.is_swap());
@@ -122,7 +108,7 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
             assert_eq!(d.effective_fs_type(), "ext4");
         }
 
-        "09-mount-options" => {
+        "08-mount-point" => {
             assert_eq!(devices.len(), 1);
             let d = devices.iter().next().unwrap();
             assert!(!d.is_swap());
@@ -132,7 +118,6 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
                 d.mount_point.as_ref().unwrap(),
                 Path::new("/var/compressed")
             );
-            assert_eq!(d.mount_options.as_ref().unwrap(), "discard");
             assert_eq!(d.fs_type.as_ref().unwrap(), "ext4");
             assert_eq!(d.effective_fs_type(), "ext4");
         }
@@ -190,13 +175,13 @@ fn test_06_kernel_enabled() {
 }
 
 #[test]
-fn test_07_mount_point() {
-    test_generation("07-mount-point").unwrap();
+fn test_07_plain_device() {
+    test_generation("07-plain-device").unwrap();
 }
 
 #[test]
-fn test_08_plain_device() {
-    test_generation("08-plain-device").unwrap();
+fn test_08_mount_point() {
+    test_generation("08-mount-point").unwrap();
 }
 
 #[test]
