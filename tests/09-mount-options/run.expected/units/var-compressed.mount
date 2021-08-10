@@ -10,4 +10,4 @@ After=systemd-zram-setup@zram11.service
 What=/dev/zram11
 Where=/var/compressed
 Type=ext4
-Options=defaults
+Options=discard

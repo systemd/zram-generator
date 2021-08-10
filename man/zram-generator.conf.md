@@ -104,6 +104,12 @@ Devices with the final size of *0* will be discarded.
 
   Also see systemd-makefs(8).
 
+* `mount-options` =
+
+  Specifies how the device shall be mount with options. The default is *defaults*.
+
+  Note that for ext4 it is recommend to set as *discard* for enable TRIM support, therefore deleted file will be zero-ed and so corresponding used memory will be released.
+
 ## ENVIRONMENT VARIABLES
 
 Setting `ZRAM_GENERATOR_ROOT` during parsing will cause */proc/meminfo* to be read from *$ZRAM_GENERATOR_ROOT/proc/meminfo* instead,
