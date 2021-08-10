@@ -118,8 +118,8 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
             assert_eq!(d.host_memory_limit_mb, None);
             assert_eq!(d.zram_fraction, 0.5);
             assert!(d.mount_point.is_none());
-            assert_eq!(d.fs_type.as_ref().unwrap(), "ext2");
-            assert_eq!(d.effective_fs_type(), "ext2");
+            assert_eq!(d.fs_type.as_ref().unwrap(), "ext4");
+            assert_eq!(d.effective_fs_type(), "ext4");
         }
 
         "09-mount-options" => {

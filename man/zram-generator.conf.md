@@ -98,7 +98,7 @@ Devices with the final size of *0* will be discarded.
 
 * `fs-type`=
 
-  Specifies how the device shall be formatted. The default is *ext2* if `mount-point` is specified, and *swap* otherwise. (Effectively, the device will be formatted as swap, if neither `fs-type`= nor `mount-point`= are specified.)
+  Specifies how the device shall be formatted. The default is *ext4* if `mount-point` is specified, and *swap* otherwise. (Effectively, the device will be formatted as swap, if neither `fs-type`= nor `mount-point`= are specified.)
 
   Note that the device is temporary: contents will be destroyed automatically after the file system is unmounted (to release the backing memory).
 

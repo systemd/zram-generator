@@ -84,7 +84,7 @@ impl Device {
             Some(ref fs_type) => fs_type,
             None => match self.is_swap() {
                 true => "swap",
-                false => "ext2",
+                false => "ext4",
             },
         }
     }
