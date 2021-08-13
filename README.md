@@ -72,6 +72,8 @@ To install directly from sources, execute `make build && sudo make install`:
 * `zram-generator.conf.example` is copied into `/usr/share/doc/zram-generator/`
 You need though create your own config file at one of the locations listed above.
 
+After installing, the generator will be invoked by systemd early at boot.
+
 ### Testing
 
 The tests require either the `zram` module to be loaded, or root to run `modprobe zram`.
