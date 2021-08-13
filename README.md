@@ -80,6 +80,9 @@ You need though create your own config file at one of the locations listed above
 - Run `systemctl start /dev/zram0` (adjust the name as appropriate to match the config).
 - Call `zramctl` or `swapon` to confirm that the device has been created and is in use.
 
+Once installed and configured, the generator will be invoked by systemd early at boot,
+there is no need to do anything else.
+
 ### Testing
 
 The tests require either the `zram` module to be loaded, or root to run `modprobe zram`.
