@@ -1,0 +1,33 @@
+Source: zram-generator
+Section: admin
+Priority: optional
+Standards-Version: 4.5.0
+Maintainer: Wong Hoi Sing Edison <hswong3i@gmail.com>
+Homepage: https://github.com/systemd/zram-generator
+Vcs-Browser: https://github.com/alvistack/systemd-zram-generator/
+Vcs-Git: https://github.com/alvistack/systemd-zram-generator.git
+Build-Depends:
+ debhelper,
+ debhelper-compat (= 10),
+ cargo,
+ pkg-config,
+ systemd,
+
+Package: zram-generator
+Architecture: amd64
+Description: Systemd unit generator for zram swap devices
+ This is a systemd unit generator that enables swap on zram. (With zram,
+ there is no physical swap device. Part of the avaialable RAM is used to
+ store compressed pages, essentially trading CPU cycles for memory.) To
+ activate, install zram-generator-defaults subpackage.
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+
+Package: zram-generator-defaults
+Architecture: linux-any
+Description: Default configuration for zram-generator
+ Activate zram-generator with default configuration.
+Depends:
+ ${misc:Depends},
+ zram-generator

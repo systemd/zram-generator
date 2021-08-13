@@ -1,0 +1,6 @@
+*.substvars
+*debhelper*
+.debhelper
+files
+zram-generator
+zram-generator-defaults
