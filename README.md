@@ -72,6 +72,14 @@ To install directly from sources, execute `make build && sudo make install`:
 * `zram-generator.conf.example` is copied into `/usr/share/doc/zram-generator/`
 You need though create your own config file at one of the locations listed above.
 
+#### tl;dr
+
+- Install `zram-generator` using one of the methods listed above.
+- Create a `zram-generator.conf` config file.
+- Run `systemctl daemon-reload` to create new device units.
+- Run `systemctl start /dev/zram0` (adjust the name as appropriate to match the config).
+- Call `zramctl` or `swapon` to confirm that the device has been created and is in use.
+
 ### Testing
 
 The tests require either the `zram` module to be loaded, or root to run `modprobe zram`.
