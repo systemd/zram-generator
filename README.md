@@ -54,8 +54,8 @@ This will set up a /dev/zram1 with ext2 and generate a mount unit for /var/tmp.
 
 ### Rust
 
-The second purpose of this program is to serve as an example of a
-systemd generator in rust. Details are still being figured out.
+The second purpose of this program is to serve as an example of a systemd
+generator in rust.
 
 ### Installation
 
