@@ -32,6 +32,11 @@ max-zram-size = 512
 # or leave unspecified to keep the kernel default.
 compression-algorithm = lzo-rle
 
+# By default, filesystems and swap areas are trimmed on-the-go
+# by setting "discard".
+# Setting this to the empty string clears the option.
+options =
+
 [zram1]
 # This section describes the settings for /dev/zram1.
 #

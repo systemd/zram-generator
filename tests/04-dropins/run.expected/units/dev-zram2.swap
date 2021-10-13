@@ -9,3 +9,4 @@ After=systemd-zram-setup@zram2.service
 [Swap]
 What=/dev/zram2
 Priority=200
+Options=

@@ -215,9 +215,11 @@ After=systemd-zram-setup@{zram_device}.service
 [Swap]
 What=/dev/{zram_device}
 Priority={swap_priority}
+Options={options}
 ",
             zram_device = device.name,
-            swap_priority = device.swap_priority
+            swap_priority = device.swap_priority,
+            options = device.options.replace('%', "%%"),
         ),
     )?;
 
@@ -285,9 +287,11 @@ After=systemd-zram-setup@{zram_device}.service
 [Mount]
 What=/dev/{zram_device}
 Where={mount_point}
+Options={options}
 ",
             zram_device = device.name,
             mount_point = device.mount_point.as_ref().unwrap().to_str().unwrap(),
+            options = device.options.replace('%', "%%"),
         ),
     )?;
 
