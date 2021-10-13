@@ -8,5 +8,5 @@ After=systemd-zram-setup@zram15.service
 
 [Mount]
 What=/dev/zram15
-Where=///
+Where=/
 Options=discard

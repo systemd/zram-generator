@@ -233,6 +233,8 @@ Options={options}
 }
 
 /// Path escaping as described in systemd.unit(5)
+///
+/// `/./` components stripped away when parsing `mount-point =`
 fn mount_unit_name(path: &Path) -> String {
     assert!(path.is_absolute());
 
@@ -373,5 +375,25 @@ type         : skcipher
 ";
         let expected = vec!["zstd", "ccm(aes)", "ctr(aes)"];
         assert_eq!(parse_known_compressors(data), BTreeSet::from_iter(expected));
+    }
+
+    #[test]
+    fn test_mount_unit_name() {
+        assert_eq!(mount_unit_name(&Path::new("/waldo")), "waldo.mount");
+        assert_eq!(
+            mount_unit_name(&Path::new("/waldo/quuix")),
+            "waldo-quuix.mount"
+        );
+        assert_eq!(
+            mount_unit_name(&Path::new("/waldo/quuix/")),
+            "waldo-quuix.mount"
+        );
+        assert_eq!(
+            mount_unit_name(&Path::new("/waldo/quuix//")),
+            "waldo-quuix.mount"
+        );
+        assert_eq!(mount_unit_name(&Path::new("/")), "-.mount");
+        assert_eq!(mount_unit_name(&Path::new("//")), "-.mount");
+        assert_eq!(mount_unit_name(&Path::new("///")), "-.mount");
     }
 }
