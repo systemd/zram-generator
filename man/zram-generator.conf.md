@@ -102,6 +102,8 @@ Devices with the final size of *0* will be discarded.
 
   Note that the device is temporary: contents will be destroyed automatically after the file system is unmounted (to release the backing memory).
 
+  The chosen file system must support the `discard` option.
+
   Also see systemd-makefs(8).
 
 ## ENVIRONMENT VARIABLES

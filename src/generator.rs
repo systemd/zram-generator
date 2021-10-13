@@ -285,6 +285,7 @@ After=systemd-zram-setup@{zram_device}.service
 [Mount]
 What=/dev/{zram_device}
 Where={mount_point}
+Options=discard
 ",
             zram_device = device.name,
             mount_point = device.mount_point.as_ref().unwrap().to_str().unwrap(),
