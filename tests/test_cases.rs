@@ -103,7 +103,7 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
         }
 
         "07-mount-point" => {
-            assert_eq!(devices.len(), 2);
+            assert_eq!(devices.len(), 5);
             for d in &devices {
                 assert!(!d.is_swap());
                 assert_eq!(d.host_memory_limit_mb, None);
@@ -121,6 +121,18 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
                     "zram12" => {
                         assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("/var/folded"));
                         assert_eq!(d.options, "discard,casefold");
+                    }
+                    "zram13" => {
+                        assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("/foo//bar/baz/"));
+                        assert_eq!(d.options, "discard");
+                    }
+                    "zram14" => {
+                        assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("/.żupan-ci3pły"));
+                        assert_eq!(d.options, "discard");
+                    }
+                    "zram15" => {
+                        assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("///"));
+                        assert_eq!(d.options, "discard");
                     }
                     _ => panic!("Unexpected device {}", d),
                 }
