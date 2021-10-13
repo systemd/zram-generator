@@ -50,6 +50,7 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
             assert!(d.is_swap());
             assert_eq!(d.host_memory_limit_mb, None);
             assert_eq!(d.zram_fraction, 0.5);
+            assert_eq!(d.options, "discard");
         }
 
         "02-zstd" => {
@@ -59,6 +60,7 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
             assert_eq!(d.host_memory_limit_mb.unwrap(), 2050);
             assert_eq!(d.zram_fraction, 0.75);
             assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
+            assert_eq!(d.options, "discard");
         }
 
         "03-too-much-memory" => {
@@ -75,10 +77,12 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
                     "zram0" => {
                         assert_eq!(d.host_memory_limit_mb.unwrap(), 1235);
                         assert_eq!(d.zram_fraction, 0.5);
+                        assert_eq!(d.options, "discard");
                     }
                     "zram2" => {
                         assert!(d.host_memory_limit_mb.is_none());
                         assert_eq!(d.zram_fraction, 0.8);
+                        assert_eq!(d.options, "");
                     }
                     _ => panic!("Unexpected device {}", d),
                 }
@@ -95,20 +99,32 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
             assert!(d.is_swap());
             assert_eq!(d.host_memory_limit_mb, None);
             assert_eq!(d.zram_fraction, 0.5);
+            assert_eq!(d.options, "discard");
         }
 
         "07-mount-point" => {
-            assert_eq!(devices.len(), 1);
-            let d = devices.iter().next().unwrap();
-            assert!(!d.is_swap());
-            assert_eq!(d.host_memory_limit_mb, None);
-            assert_eq!(d.zram_fraction, 0.5);
-            assert_eq!(
-                d.mount_point.as_ref().unwrap(),
-                Path::new("/var/compressed")
-            );
-            assert_eq!(d.fs_type.as_ref().unwrap(), "ext4");
-            assert_eq!(d.effective_fs_type(), "ext4");
+            assert_eq!(devices.len(), 2);
+            for d in &devices {
+                assert!(!d.is_swap());
+                assert_eq!(d.host_memory_limit_mb, None);
+                assert_eq!(d.zram_fraction, 0.5);
+                assert_eq!(d.fs_type.as_ref().unwrap(), "ext4");
+                assert_eq!(d.effective_fs_type(), "ext4");
+                match &d.name[..] {
+                    "zram11" => {
+                        assert_eq!(
+                            d.mount_point.as_ref().unwrap(),
+                            Path::new("/var/compressed")
+                        );
+                        assert_eq!(d.options, "discard");
+                    }
+                    "zram12" => {
+                        assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("/var/folded"));
+                        assert_eq!(d.options, "discard,casefold");
+                    }
+                    _ => panic!("Unexpected device {}", d),
+                }
+            }
         }
 
         "08-plain-device" => {
@@ -120,6 +136,7 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
             assert!(d.mount_point.is_none());
             assert_eq!(d.fs_type.as_ref().unwrap(), "ext2");
             assert_eq!(d.effective_fs_type(), "ext2");
+            assert_eq!(d.options, "discard");
         }
 
         _ => (),

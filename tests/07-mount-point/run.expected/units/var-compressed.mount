@@ -9,3 +9,4 @@ After=systemd-zram-setup@zram11.service
 [Mount]
 What=/dev/zram11
 Where=/var/compressed
+Options=discard

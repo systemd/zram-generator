@@ -9,3 +9,4 @@ After=systemd-zram-setup@zram0.service
 [Swap]
 What=/dev/zram0
 Priority=100
+Options=discard

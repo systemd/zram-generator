@@ -4,6 +4,7 @@ use anyhow::{anyhow, Context, Result};
 use ini::Ini;
 use liboverdrop::FragmentScanner;
 use log::{info, warn};
+use std::borrow::Cow;
 use std::cmp;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
@@ -22,9 +23,12 @@ pub struct Device {
     pub disksize: u64,
 
     pub swap_priority: i32,
-    pub mount_point: Option<PathBuf>, // when set, a mount unit will be created
-    pub fs_type: Option<String>,      // useful mostly for mounts, None is the same
-                                      // as "swap" when mount_point is not set
+    /// when set, a mount unit will be created
+    pub mount_point: Option<PathBuf>,
+    /// useful mostly for mounts,
+    /// None is the same as "swap" when mount_point is not set
+    pub fs_type: Option<String>,
+    pub options: Cow<'static, str>,
 }
 
 impl Device {
@@ -39,6 +43,7 @@ impl Device {
             swap_priority: 100,
             mount_point: None,
             fs_type: None,
+            options: "discard".into(),
         }
     }
 
@@ -107,6 +112,7 @@ impl fmt::Display for Device {
             Some(alg) => f.write_str(alg)?,
             None => f.write_str("<default>")?,
         }
+        write!(f, " options={}", self.options)?;
         Ok(())
     }
 }
@@ -293,6 +299,10 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
 
         "fs-type" => {
             dev.fs_type = Some(value.to_string());
+        }
+
+        "options" => {
+            dev.options = value.to_string().into();
         }
 
         _ => {
