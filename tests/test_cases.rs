@@ -14,10 +14,12 @@ fn prepare_directory(srcroot: &Path) -> Result<TempDir> {
     let root = rootdir.path();
 
     let opts = CopyOptions::new();
-    for p in vec!["etc", "usr", "proc"] {
-        if srcroot.join(p).exists() {
-            copy(srcroot.join(p), root, &opts)?;
-        }
+    for p in ["etc", "usr", "proc"]
+        .iter()
+        .map(|p| srcroot.join(p))
+        .filter(|p| p.exists())
+    {
+        copy(p, root, &opts)?;
     }
 
     let output_directory = root.join("run/units");
@@ -26,8 +28,8 @@ fn prepare_directory(srcroot: &Path) -> Result<TempDir> {
     Ok(rootdir)
 }
 
-fn test_generation(name: &str) -> Result<Vec<config::Device>> {
-    let srcroot = Path::new(file!()).parent().unwrap().join(name);
+fn test_generation(path: &str) -> Result<Vec<config::Device>> {
+    let srcroot = Path::new(path);
     let rootdir = prepare_directory(&srcroot)?;
     let root = rootdir.path();
 
@@ -43,121 +45,11 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
     let output_directory = root.join("run/units");
     generator::run_generator(&devices, &output_directory, true)?;
 
-    match name {
-        "01-basic" => {
-            assert_eq!(devices.len(), 1);
-            let d = devices.iter().next().unwrap();
-            assert!(d.is_swap());
-            assert_eq!(d.host_memory_limit_mb, None);
-            assert_eq!(d.zram_fraction, 0.5);
-            assert_eq!(d.options, "discard");
-        }
-
-        "02-zstd" => {
-            assert_eq!(devices.len(), 1);
-            let d = devices.iter().next().unwrap();
-            assert!(d.is_swap());
-            assert_eq!(d.host_memory_limit_mb.unwrap(), 2050);
-            assert_eq!(d.zram_fraction, 0.75);
-            assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
-            assert_eq!(d.options, "discard");
-        }
-
-        "03-too-much-memory" => {
-            assert_eq!(devices.len(), 0);
-        }
-
-        "04-dropins" => {
-            assert_eq!(devices.len(), 2);
-
-            for d in &devices {
-                assert!(d.is_swap());
-
-                match d.name.as_str() {
-                    "zram0" => {
-                        assert_eq!(d.host_memory_limit_mb.unwrap(), 1235);
-                        assert_eq!(d.zram_fraction, 0.5);
-                        assert_eq!(d.options, "discard");
-                    }
-                    "zram2" => {
-                        assert!(d.host_memory_limit_mb.is_none());
-                        assert_eq!(d.zram_fraction, 0.8);
-                        assert_eq!(d.options, "");
-                    }
-                    _ => panic!("Unexpected device {}", d),
-                }
-            }
-        }
-
-        "05-kernel-disabled" => {
-            assert_eq!(devices.len(), 0);
-        }
-
-        "06-kernel-enabled" => {
-            assert_eq!(devices.len(), 1);
-            let d = devices.iter().next().unwrap();
-            assert!(d.is_swap());
-            assert_eq!(d.host_memory_limit_mb, None);
-            assert_eq!(d.zram_fraction, 0.5);
-            assert_eq!(d.options, "discard");
-        }
-
-        "07-mount-point" => {
-            assert_eq!(devices.len(), 5);
-            for d in &devices {
-                assert!(!d.is_swap());
-                assert_eq!(d.host_memory_limit_mb, None);
-                assert_eq!(d.zram_fraction, 0.5);
-                assert_eq!(d.fs_type.as_ref().unwrap(), "ext4");
-                assert_eq!(d.effective_fs_type(), "ext4");
-                match &d.name[..] {
-                    "zram11" => {
-                        assert_eq!(
-                            d.mount_point.as_ref().unwrap(),
-                            Path::new("/var/compressed")
-                        );
-                        assert_eq!(d.options, "discard");
-                    }
-                    "zram12" => {
-                        assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("/var/folded"));
-                        assert_eq!(d.options, "discard,casefold");
-                    }
-                    "zram13" => {
-                        assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("/foo//bar/baz/"));
-                        assert_eq!(d.options, "discard");
-                    }
-                    "zram14" => {
-                        assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("/.żupan-ci3pły"));
-                        assert_eq!(d.options, "discard");
-                    }
-                    "zram15" => {
-                        assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("///"));
-                        assert_eq!(d.options, "discard");
-                    }
-                    _ => panic!("Unexpected device {}", d),
-                }
-            }
-        }
-
-        "08-plain-device" => {
-            assert_eq!(devices.len(), 1);
-            let d = devices.iter().next().unwrap();
-            assert!(!d.is_swap());
-            assert_eq!(d.host_memory_limit_mb, None);
-            assert_eq!(d.zram_fraction, 0.5);
-            assert!(d.mount_point.is_none());
-            assert_eq!(d.fs_type.as_ref().unwrap(), "ext2");
-            assert_eq!(d.effective_fs_type(), "ext2");
-            assert_eq!(d.options, "discard");
-        }
-
-        _ => (),
-    }
-
     // Compare output directory to expected value.
     // ExecStart lines include the full path to the generating binary,
     // so exclude them from comparison.
     let diff = Command::new("diff")
+        .arg("-u")
         .arg("--recursive")
         .arg("--exclude=.empty")
         .arg("--ignore-matching-lines=^# Automatically generated by .*")
@@ -175,40 +67,123 @@ fn test_generation(name: &str) -> Result<Vec<config::Device>> {
 
 #[test]
 fn test_01_basic() {
-    test_generation("01-basic").unwrap();
+    let devices = test_generation("tests/01-basic").unwrap();
+    assert_eq!(devices.len(), 1);
+    let d = devices.iter().next().unwrap();
+    assert!(d.is_swap());
+    assert_eq!(d.host_memory_limit_mb, None);
+    assert_eq!(d.zram_fraction, 0.5);
+    assert_eq!(d.options, "discard");
 }
 
 #[test]
 fn test_02_zstd() {
-    test_generation("02-zstd").unwrap();
+    let devices = test_generation("tests/02-zstd").unwrap();
+    assert_eq!(devices.len(), 1);
+    let d = devices.iter().next().unwrap();
+    assert!(d.is_swap());
+    assert_eq!(d.host_memory_limit_mb.unwrap(), 2050);
+    assert_eq!(d.zram_fraction, 0.75);
+    assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
+    assert_eq!(d.options, "discard");
 }
 
 #[test]
 fn test_03_too_much_memory() {
-    test_generation("03-too-much-memory").unwrap();
+    let devices = test_generation("tests/03-too-much-memory").unwrap();
+    assert_eq!(devices.len(), 0);
 }
 
 #[test]
 fn test_04_dropins() {
-    test_generation("04-dropins").unwrap();
+    let devices = test_generation("tests/04-dropins").unwrap();
+    assert_eq!(devices.len(), 2);
+
+    for d in &devices {
+        assert!(d.is_swap());
+
+        match d.name.as_str() {
+            "zram0" => {
+                assert_eq!(d.host_memory_limit_mb.unwrap(), 1235);
+                assert_eq!(d.zram_fraction, 0.5);
+                assert_eq!(d.options, "discard");
+            }
+            "zram2" => {
+                assert!(d.host_memory_limit_mb.is_none());
+                assert_eq!(d.zram_fraction, 0.8);
+                assert_eq!(d.options, "");
+            }
+            _ => panic!("Unexpected device {}", d),
+        }
+    }
 }
 
 #[test]
 fn test_05_kernel_disabled() {
-    test_generation("05-kernel-disabled").unwrap();
+    let devices = test_generation("tests/05-kernel-disabled").unwrap();
+    assert_eq!(devices.len(), 0);
 }
 
 #[test]
 fn test_06_kernel_enabled() {
-    test_generation("06-kernel-enabled").unwrap();
+    let devices = test_generation("tests/06-kernel-enabled").unwrap();
+    assert_eq!(devices.len(), 1);
+    let d = devices.iter().next().unwrap();
+    assert!(d.is_swap());
+    assert_eq!(d.host_memory_limit_mb, None);
+    assert_eq!(d.zram_fraction, 0.5);
+    assert_eq!(d.options, "discard");
 }
 
 #[test]
 fn test_07_mount_point() {
-    test_generation("07-mount-point").unwrap();
+    let devices = test_generation("tests/07-mount-point").unwrap();
+    assert_eq!(devices.len(), 5);
+    for d in &devices {
+        assert!(!d.is_swap());
+        assert_eq!(d.host_memory_limit_mb, None);
+        assert_eq!(d.zram_fraction, 0.5);
+        assert_eq!(d.fs_type.as_ref().unwrap(), "ext4");
+        assert_eq!(d.effective_fs_type(), "ext4");
+        match &d.name[..] {
+            "zram11" => {
+                assert_eq!(
+                    d.mount_point.as_ref().unwrap(),
+                    Path::new("/var/compressed")
+                );
+                assert_eq!(d.options, "discard");
+            }
+            "zram12" => {
+                assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("/var/folded"));
+                assert_eq!(d.options, "discard,casefold");
+            }
+            "zram13" => {
+                assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("/foo//bar/baz/"));
+                assert_eq!(d.options, "discard");
+            }
+            "zram14" => {
+                assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("/.żupan-ci3pły"));
+                assert_eq!(d.options, "discard");
+            }
+            "zram15" => {
+                assert_eq!(d.mount_point.as_ref().unwrap(), Path::new("///"));
+                assert_eq!(d.options, "discard");
+            }
+            _ => panic!("Unexpected device {}", d),
+        }
+    }
 }
 
 #[test]
 fn test_08_plain_device() {
-    test_generation("08-plain-device").unwrap();
+    let devices = test_generation("tests/08-plain-device").unwrap();
+    assert_eq!(devices.len(), 1);
+    let d = devices.iter().next().unwrap();
+    assert!(!d.is_swap());
+    assert_eq!(d.host_memory_limit_mb, None);
+    assert_eq!(d.zram_fraction, 0.5);
+    assert!(d.mount_point.is_none());
+    assert_eq!(d.fs_type.as_ref().unwrap(), "ext2");
+    assert_eq!(d.effective_fs_type(), "ext2");
+    assert_eq!(d.options, "discard");
 }
