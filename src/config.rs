@@ -248,7 +248,7 @@ fn parse_swap_priority(val: &str) -> Result<i32> {
 }
 
 fn verify_mount_point(val: &str) -> Result<PathBuf> {
-    let path = PathBuf::from(val);
+    let path = Path::new(val);
 
     if path.is_relative() {
         return Err(anyhow!("mount-point {} is not absolute", val));
@@ -258,7 +258,11 @@ fn verify_mount_point(val: &str) -> Result<PathBuf> {
         return Err(anyhow!("mount-point {:#?} is not normalized", path));
     }
 
-    Ok(path)
+    // normalise away /./ components
+    Ok(path.components().fold(PathBuf::new(), |mut pb, c| {
+        pb.push(c);
+        pb
+    }))
 }
 
 fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {

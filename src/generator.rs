@@ -6,7 +6,7 @@ use log::{debug, log, warn, Level};
 use std::cmp;
 use std::collections::BTreeSet;
 use std::fs;
-use std::io;
+use std::io::{self, Write};
 use std::os::unix::fs::symlink;
 use std::path::Path;
 use std::process::Command;
@@ -232,12 +232,33 @@ Options={options}
     Ok(())
 }
 
+/// Path escaping as described in systemd.unit(5)
+///
+/// `/./` components stripped away when parsing `mount-point =`
 fn mount_unit_name(path: &Path) -> String {
-    /* FIXME: handle full escaping */
     assert!(path.is_absolute());
 
-    let path = path.strip_prefix("/").unwrap().to_str().unwrap();
-    format!("{}.mount", path.replace("/", "-"))
+    let trimmed = path.to_str().unwrap().trim_matches('/');
+    if trimmed.is_empty() {
+        return "-.mount".to_string();
+    } else {
+        let mut obuf = Vec::with_capacity(path.as_os_str().len() + ".mount".len());
+        let mut just_slash = false;
+        for (i, &b) in trimmed.as_bytes().iter().enumerate() {
+            if b == b'/' && just_slash {
+                continue;
+            }
+            just_slash = b == b'/';
+            match b {
+                b'/' => obuf.push(b'-'),
+                b'.' if i == 0 => write!(obuf, "\\x{:02x}", b'.').unwrap(),
+                b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' | b'_' | b'.' => obuf.push(b),
+                _ => write!(obuf, "\\x{:02x}", b).unwrap(),
+            }
+        }
+        obuf.extend_from_slice(b".mount");
+        String::from_utf8(obuf).unwrap()
+    }
 }
 
 fn handle_zram_mount_point(output_directory: &Path, device: &Device) -> Result<()> {
@@ -354,5 +375,25 @@ type         : skcipher
 ";
         let expected = vec!["zstd", "ccm(aes)", "ctr(aes)"];
         assert_eq!(parse_known_compressors(data), BTreeSet::from_iter(expected));
+    }
+
+    #[test]
+    fn test_mount_unit_name() {
+        assert_eq!(mount_unit_name(&Path::new("/waldo")), "waldo.mount");
+        assert_eq!(
+            mount_unit_name(&Path::new("/waldo/quuix")),
+            "waldo-quuix.mount"
+        );
+        assert_eq!(
+            mount_unit_name(&Path::new("/waldo/quuix/")),
+            "waldo-quuix.mount"
+        );
+        assert_eq!(
+            mount_unit_name(&Path::new("/waldo/quuix//")),
+            "waldo-quuix.mount"
+        );
+        assert_eq!(mount_unit_name(&Path::new("/")), "-.mount");
+        assert_eq!(mount_unit_name(&Path::new("//")), "-.mount");
+        assert_eq!(mount_unit_name(&Path::new("///")), "-.mount");
     }
 }
