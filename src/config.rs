@@ -47,20 +47,9 @@ impl Device {
         }
     }
 
-    fn write_optional_mb(f: &mut fmt::Formatter<'_>, val: Option<u64>) -> fmt::Result {
-        match val {
-            Some(val) => {
-                write!(f, "{}", val)?;
-                f.write_str("MB")?;
-            }
-            None => f.write_str("<none>")?,
-        }
-        Ok(())
-    }
-
     pub fn is_swap(&self) -> bool {
-        return self.mount_point.is_none()
-            && (self.fs_type.is_none() || self.fs_type.as_ref().unwrap() == "swap");
+        self.mount_point.is_none()
+            && (self.fs_type.is_none() || self.fs_type.as_ref().unwrap() == "swap")
     }
 
     fn is_enabled(&self, memtotal_mb: u64) -> bool {
@@ -80,12 +69,10 @@ impl Device {
     }
 
     pub fn effective_fs_type(&self) -> &str {
-        match self.fs_type {
-            Some(ref fs_type) => fs_type,
-            None => match self.is_swap() {
-                true => "swap",
-                false => "ext2",
-            },
+        match (self.fs_type.as_ref(), self.is_swap()) {
+            (Some(fs_type), _) => fs_type,
+            (None, true) => "swap",
+            (None, false) => "ext2",
         }
     }
 
@@ -103,37 +90,36 @@ impl Device {
 
 impl fmt::Display for Device {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: host-memory-limit=", self.name)?;
-        Device::write_optional_mb(f, self.host_memory_limit_mb)?;
-        write!(f, " zram-fraction={} max-zram-size=", self.zram_fraction)?;
-        Device::write_optional_mb(f, self.max_zram_size_mb)?;
-        f.write_str(" compression-algorithm=")?;
-        match self.compression_algorithm.as_ref() {
-            Some(alg) => f.write_str(alg)?,
-            None => f.write_str("<default>")?,
+        write!(f, "{}: host-memory-limit={} zram-fraction={} max-zram-size={}  compression-algorithm={} options={}",
+            self.name, OptMB(self.host_memory_limit_mb), self.zram_fraction, OptMB(self.max_zram_size_mb),
+            self.compression_algorithm.as_deref().unwrap_or("<default>"), self.options)
+    }
+}
+
+struct OptMB(Option<u64>);
+impl fmt::Display for OptMB {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Some(val) => write!(f, "{}MB", val),
+            None => f.write_str("<none>"),
         }
-        write!(f, " options={}", self.options)?;
-        Ok(())
     }
 }
 
 pub fn read_device(root: &Path, kernel_override: bool, name: &str) -> Result<Option<Device>> {
-    let memtotal_mb = (get_total_memory_kb(&root)? as f64 / 1024.) as u64;
-    Ok(read_devices(root, kernel_override, memtotal_mb)?
+    let memtotal_mb = get_total_memory_kb(&root)? as f64 / 1024.;
+    Ok(read_devices(root, kernel_override, memtotal_mb as u64)?
         .remove(name)
         .filter(|dev| dev.disksize > 0))
 }
 
 pub fn read_all_devices(root: &Path, kernel_override: bool) -> Result<Vec<Device>> {
-    let memtotal_mb = get_total_memory_kb(&root)? / 1024;
-
-    let devices: Vec<Device> = read_devices(root, kernel_override, memtotal_mb)?
+    let memtotal_mb = get_total_memory_kb(&root)? as f64 / 1024.;
+    Ok(read_devices(root, kernel_override, memtotal_mb as u64)?
         .into_iter()
         .filter(|(_, dev)| dev.disksize > 0)
         .map(|(_, dev)| dev)
-        .collect();
-
-    Ok(devices)
+        .collect())
 }
 
 fn read_devices(
@@ -212,15 +198,18 @@ fn locate_fragments(root: &Path) -> BTreeMap<String, PathBuf> {
     );
 
     let mut fragments = cfg.scan();
-
-    for dir in base_dirs.iter().rev() {
-        let path = PathBuf::from(dir).join("systemd/zram-generator.conf");
-        if path.exists() {
-            fragments.insert("".to_string(), path); // The empty string shall sort earliest
-            break;
-        }
+    if let Some(path) = base_dirs
+        .into_iter()
+        .rev()
+        .map(PathBuf::from)
+        .map(|mut p| {
+            p.push("systemd/zram-generator.conf");
+            p
+        })
+        .find(|p| p.exists())
+    {
+        fragments.insert(String::new(), path); // The empty string shall sort earliest
     }
-
     fragments
 }
 
@@ -242,7 +231,7 @@ fn parse_swap_priority(val: &str) -> Result<i32> {
 
     /* See --priority in swapon(8). */
     match val {
-        -1..=32767 => Ok(val),
+        -1..=0x7FFF => Ok(val),
         _ => Err(anyhow!("Swap priority {} out of range", val)),
     }
 }
@@ -258,11 +247,7 @@ fn verify_mount_point(val: &str) -> Result<PathBuf> {
         return Err(anyhow!("mount-point {:#?} is not normalized", path));
     }
 
-    // normalise away /./ components
-    Ok(path.components().fold(PathBuf::new(), |mut pb, c| {
-        pb.push(c);
-        pb
-    }))
+    Ok(path.components().collect()) // normalise away /./ components
 }
 
 fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
@@ -326,10 +311,8 @@ fn _get_total_memory_kb(path: &Path) -> Result<u64> {
     {
         let line = line?;
         let mut fields = line.split_whitespace();
-        if let Some("MemTotal:") = fields.next() {
-            if let Some(v) = fields.next() {
-                return Ok(v.parse()?);
-            }
+        if let (Some("MemTotal:"), Some(val)) = (fields.next(), fields.next()) {
+            return Ok(val.parse()?);
         }
     }
 
@@ -344,18 +327,17 @@ fn get_total_memory_kb(root: &Path) -> Result<u64> {
 fn _kernel_has_option(path: &Path, word: &str) -> Result<Option<bool>> {
     let text = fs::read_to_string(path)?;
 
-    // The last argument wins, so check all words in turn.
-    Ok(text.split_whitespace().fold(None, |acc, w| {
-        if !w.starts_with(word) {
-            acc
-        } else {
-            match &w[word.len()..] {
-                "" | "=1" | "=yes" | "=true" | "=on" => Some(true),
-                "=0" | "=no" | "=false" | "=off" => Some(false),
-                _ => acc,
-            }
-        }
-    }))
+    // Last argument wins
+    Ok(text
+        .split_whitespace()
+        .rev()
+        .filter(|w| w.starts_with(word))
+        .flat_map(|w| match &w[word.len()..] {
+            "" | "=1" | "=yes" | "=true" | "=on" => Some(true),
+            "=0" | "=no" | "=false" | "=off" => Some(false),
+            _ => None,
+        })
+        .next())
 }
 
 pub fn kernel_has_option(root: &Path, word: &str) -> Result<Option<bool>> {
@@ -365,12 +347,11 @@ pub fn kernel_has_option(root: &Path, word: &str) -> Result<Option<bool>> {
 
 pub fn kernel_zram_option(root: &Path) -> Option<bool> {
     match kernel_has_option(root, "systemd.zram") {
-        Ok(Some(true)) => Some(true),
+        Ok(r @ Some(true)) | Ok(r @ None) => r,
         Ok(Some(false)) => {
             info!("Disabled by systemd.zram option in /proc/cmdline.");
             Some(false)
         }
-        Ok(None) => None,
         Err(e) => {
             warn!("Failed to parse /proc/cmdline ({}), ignoring.", e);
             None
@@ -382,20 +363,23 @@ pub fn kernel_zram_option(root: &Path) -> Option<bool> {
 mod tests {
     use super::*;
 
+    fn file_with(data: &[u8]) -> tempfile::NamedTempFile {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+        file.write(data).unwrap();
+        file.flush().unwrap();
+        file
+    }
+
     #[test]
     fn test_get_total_memory_kb() {
-        let mut file = tempfile::NamedTempFile::new().unwrap();
-
-        file.write(
+        let file = file_with(
             b"\
 MemTotal:        8013220 kB
 MemFree:          721288 kB
 MemAvailable:    1740336 kB
 Buffers:          292752 kB
 ",
-        )
-        .unwrap();
-        file.flush().unwrap();
+        );
         let mem = _get_total_memory_kb(file.path()).unwrap();
         assert_eq!(mem, 8013220);
     }
@@ -403,75 +387,53 @@ Buffers:          292752 kB
     #[test]
     #[should_panic(expected = "Couldn't find MemTotal")]
     fn test_get_total_memory_not_found() {
-        let mut file = tempfile::NamedTempFile::new().unwrap();
-
-        file.write(
+        let file = file_with(
             b"\
 MemTotala:        8013220 kB
 aMemTotal:        8013220 kB
 MemTotal::        8013220 kB
 ",
-        )
-        .unwrap();
-        file.flush().unwrap();
+        );
         _get_total_memory_kb(file.path()).unwrap();
     }
 
     #[test]
     fn test_kernel_has_option() {
-        let mut file = tempfile::NamedTempFile::new().unwrap();
-
-        file.write(
-            b"\
-foo=1 foo=0 foo=on foo=off foo
-",
-        )
-        .unwrap();
-        file.flush().unwrap();
-        let foo = _kernel_has_option(file.path(), "foo").unwrap();
-        assert_eq!(foo, Some(true));
+        let file = file_with(b"foo=1 foo=0 foo=on foo=off foo\n");
+        assert_eq!(_kernel_has_option(file.path(), "foo").unwrap(), Some(true));
     }
 
     #[test]
     fn test_kernel_has_no_option() {
-        let mut file = tempfile::NamedTempFile::new().unwrap();
-
-        file.write(
+        let file = file_with(
             b"\
 foo=1
 foo=0
 ",
-        )
-        .unwrap();
-        file.flush().unwrap();
-        let foo = _kernel_has_option(file.path(), "foo").unwrap();
-        assert_eq!(foo, Some(false));
+        );
+        assert_eq!(_kernel_has_option(file.path(), "foo").unwrap(), Some(false));
     }
 
     #[test]
     fn test_verify_mount_point() {
-        let p = verify_mount_point("/foobar").unwrap();
-        assert_eq!(p, PathBuf::from("/foobar"));
+        for e in ["foo/bar", "/foo/../bar", "/foo/.."] {
+            assert!(verify_mount_point(e).is_err(), "{}", e);
+        }
 
-        let p = verify_mount_point("foo/bar");
-        assert!(p.is_err());
-
-        let p = verify_mount_point("/foo/../bar");
-        assert!(p.is_err());
-
-        let p = verify_mount_point("/foo/..");
-        assert!(p.is_err());
-
-        let p = verify_mount_point("/").unwrap();
-        assert_eq!(p, PathBuf::from("/"));
-
-        let p = verify_mount_point("//").unwrap();
-        assert_eq!(p, PathBuf::from("/"));
-
-        let p = verify_mount_point("///").unwrap();
-        assert_eq!(p, PathBuf::from("/"));
-
-        let p = verify_mount_point("/foo/./bar/").unwrap();
-        assert_eq!(p, PathBuf::from("/foo/bar"));
+        for (p, o) in [
+            ("/foobar", "/foobar"),
+            ("/", "/"),
+            ("//", "/"),
+            ("///", "/"),
+            ("/foo/./bar/", "/foo/bar"),
+        ] {
+            assert_eq!(
+                verify_mount_point(p).unwrap(),
+                Path::new(o),
+                "{} vs {}",
+                p,
+                o
+            );
+        }
     }
 }
