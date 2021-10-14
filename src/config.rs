@@ -452,28 +452,26 @@ foo=0
     fn test_verify_mount_point() {
         let p = verify_mount_point("/foobar").unwrap();
         assert_eq!(p, PathBuf::from("/foobar"));
-    }
 
-    #[test]
-    fn test_verify_mount_point_absolute() {
         let p = verify_mount_point("foo/bar");
         assert!(p.is_err());
-    }
 
-    #[test]
-    fn test_verify_mount_point_normalized() {
         let p = verify_mount_point("/foo/../bar");
         assert!(p.is_err());
-    }
 
-    #[test]
-    fn test_verify_mount_point_normalized2() {
         let p = verify_mount_point("/foo/..");
         assert!(p.is_err());
-    }
 
-    #[test]
-    fn test_verify_mount_point_self() {
-        verify_mount_point("/foo/./bar/").unwrap();
+        let p = verify_mount_point("/").unwrap();
+        assert_eq!(p, PathBuf::from("/"));
+
+        let p = verify_mount_point("//").unwrap();
+        assert_eq!(p, PathBuf::from("/"));
+
+        let p = verify_mount_point("///").unwrap();
+        assert_eq!(p, PathBuf::from("/"));
+
+        let p = verify_mount_point("/foo/./bar/").unwrap();
+        assert_eq!(p, PathBuf::from("/foo/bar"));
     }
 }
