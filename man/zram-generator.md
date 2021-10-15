@@ -60,13 +60,13 @@ Otherwise, systemd will not know how to stop the unit properly.
 
 ## REPORTING BUGS
 
-&lt;<https://github.com/systemd/zram-generator/issues>&gt;
+<https://github.com/systemd/zram-generator/issues>
 
 ## SEE ALSO
 
 zram-generator.conf(5), systemd.generator(7), systemd.swap(5)
 
-&lt;<https://github.com/systemd/zram-generator>&gt;
+<https://github.com/systemd/zram-generator>
 
-Linux documentation of zram: &lt;<https://kernel.org/doc/html/latest/admin-guide/blockdev/zram.html>&gt;<br />
-     and the zram sysfs ABI: &lt;<https://kernel.org/doc/Documentation/ABI/testing/sysfs-block-zram>&gt;
+Linux documentation of zram: <https://kernel.org/doc/html/latest/admin-guide/blockdev/zram.html><br />
+     and the zram sysfs ABI: <https://kernel.org/doc/Documentation/ABI/testing/sysfs-block-zram>
