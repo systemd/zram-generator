@@ -1,5 +1,4 @@
-
-[comment]: SPDX-License-Identifier: MIT
+<!-- SPDX-License-Identifier: MIT -->
 
 zram-generator.conf(5) -- Systemd unit generator for zram swap devices (configuration)
 ======================================================================================
@@ -136,13 +135,13 @@ The default configuration will yield the following:
 
 ## REPORTING BUGS
 
-&lt;<https://github.com/systemd/zram-generator/issues>&gt;
+<https://github.com/systemd/zram-generator/issues>
 
 ## SEE ALSO
 
 zram-generator(8), systemd.syntax(5), proc(5)
 
-&lt;<https://github.com/systemd/zram-generator>&gt;
+<https://github.com/systemd/zram-generator>
 
-Linux documentation of zram: &lt;<https://kernel.org/doc/html/latest/admin-guide/blockdev/zram.html>&gt;<br />
-     and the zram sysfs ABI: &lt;<https://kernel.org/doc/Documentation/ABI/testing/sysfs-block-zram>&gt;
+Linux documentation of zram: <https://kernel.org/doc/html/latest/admin-guide/blockdev/zram.html><br />
+     and the zram sysfs ABI: <https://kernel.org/doc/Documentation/ABI/testing/sysfs-block-zram>
