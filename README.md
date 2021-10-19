@@ -1,5 +1,9 @@
 # `systemd-zram-setup@.service` generator for zram devices
 
+<a href="https://repology.org/project/zram-generator/versions">
+    <img align="right" src="https://repology.org/badge/vertical-allrepos/zram-generator.svg?exclude_sources=site&exclude_unsupported=1" alt="Packaging status">
+</a>
+
 This generator provides a simple and fast mechanism to configure swap on `/dev/zram*` devices.
 
 The main use case is create **swap** devices, but devices with a file system can be created too, see below.
