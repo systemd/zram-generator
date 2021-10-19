@@ -49,8 +49,7 @@ fn virtualization_container() -> Result<bool> {
 }
 
 fn modprobe(modname: &str, required: bool) {
-    let status = Command::new("modprobe").arg(modname).status();
-    match status {
+    match Command::new("modprobe").arg(modname).status() {
         Err(e) => {
             let level = match !required && e.kind() == io::ErrorKind::NotFound {
                 true => Level::Debug,
@@ -122,13 +121,10 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
         .collect();
 
     if !compressors.is_empty() {
-        let proc_crypto = match fs::read_to_string("/proc/crypto") {
-            Ok(string) => string,
-            Err(e) => {
-                warn!("Failed to read /proc/crypto, proceeding as if empty: {}", e);
-                String::from("")
-            }
-        };
+        let proc_crypto = fs::read_to_string("/proc/crypto").unwrap_or_else(|e| {
+            warn!("Failed to read /proc/crypto, proceeding as if empty: {}", e);
+            String::new()
+        });
         let known = parse_known_compressors(&proc_crypto);
 
         for comp in compressors.difference(&known) {
@@ -163,7 +159,7 @@ fn write_contents(output_directory: &Path, filename: &str, contents: &str) -> Re
         contents = contents
     );
 
-    fs::write(&path, contents).with_context(|| format!("Failed to write {:?}", path))
+    fs::write(&path, contents).with_context(|| format!("Failed to write {}", path.display()))
 }
 
 fn handle_device(output_directory: &Path, device: &Device) -> Result<()> {
@@ -186,7 +182,6 @@ fn handle_zram_swap(output_directory: &Path, device: &Device) -> Result<()> {
 
     /* systemd-zram-setup@.service.
      * We use the packaged unit, and only need to provide a small drop-in. */
-
     write_contents(
         output_directory,
         &format!(
@@ -200,7 +195,6 @@ BindsTo=dev-%i.swap
     )?;
 
     /* dev-zramX.swap */
-
     write_contents(
         output_directory,
         &swap_name,
@@ -224,7 +218,6 @@ Options={options}
     )?;
 
     /* enablement symlink */
-
     let symlink_path = output_directory.join("swap.target.wants").join(&swap_name);
     let target_path = format!("../{}", swap_name);
     make_symlink(&target_path, &symlink_path)?;
@@ -278,7 +271,6 @@ fn handle_zram_mount_point(output_directory: &Path, device: &Device) -> Result<(
 
     /* systemd-zram-setup@.service.
      * We use the packaged unit, and only need to provide a small drop-in. */
-
     write_contents(
         output_directory,
         &format!(
@@ -317,7 +309,6 @@ Options={options}
     )?;
 
     /* enablement symlink */
-
     let symlink_path = output_directory
         .join("local-fs.target.wants")
         .join(&mount_name);
@@ -373,7 +364,7 @@ selftest     : passed
 internal     : no
 type         : skcipher
 ";
-        let expected = vec!["zstd", "ccm(aes)", "ctr(aes)"];
+        let expected = ["zstd", "ccm(aes)", "ctr(aes)"];
         assert_eq!(parse_known_compressors(data), BTreeSet::from_iter(expected));
     }
 

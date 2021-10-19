@@ -75,14 +75,12 @@ fn main() -> Result<()> {
 
     match get_opts() {
         Opts::GenerateUnits(target) => {
-            let kernel_override = kernel_override();
-            let devices = config::read_all_devices(&root, kernel_override)?;
+            let devices = config::read_all_devices(&root, kernel_override())?;
             let output_directory = PathBuf::from(target);
             generator::run_generator(&devices, &output_directory, have_env_var)
         }
         Opts::SetupDevice(dev) => {
-            let kernel_override = kernel_override();
-            let device = config::read_device(&root, kernel_override, &dev)?;
+            let device = config::read_device(&root, kernel_override(), &dev)?;
             setup::run_device_setup(device, &dev)
         }
         Opts::ResetDevice(dev) => {
