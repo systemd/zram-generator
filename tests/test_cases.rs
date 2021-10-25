@@ -138,7 +138,24 @@ fn test_06_kernel_enabled() {
 #[test]
 fn test_07_mount_point() {
     let devices = test_generation("tests/07-mount-point").unwrap();
-    assert_eq!(devices.len(), 5);
+    assert_eq!(devices.len(), 4);
+    test_07_devices(devices);
+}
+
+/// cargo-package refuses to pack files with `\`s in them,
+/// so we split them off to be able to push to crates.io
+#[test]
+fn test_07a_mount_point_excl() {
+    if !Path::new("tests/07a-mount-point-excl").exists() {
+        return;
+    }
+
+    let devices = test_generation("tests/07a-mount-point-excl").unwrap();
+    assert_eq!(devices.len(), 1);
+    test_07_devices(devices);
+}
+
+fn test_07_devices(devices: Vec<config::Device>) {
     for d in &devices {
         assert!(!d.is_swap());
         assert_eq!(d.host_memory_limit_mb, None);
