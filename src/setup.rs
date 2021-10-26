@@ -9,7 +9,7 @@ use std::os::unix::process::ExitStatusExt;
 use std::path::Path;
 use std::process::Command;
 
-const SYSTEMD_MAKEFS_COMMAND: &str = concat!(
+pub const SYSTEMD_MAKEFS_COMMAND: &str = concat!(
     env!(
         "SYSTEMD_UTIL_DIR",
         "Define $SYSTEMD_UTIL_DIR to the result of \
