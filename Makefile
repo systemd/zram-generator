@@ -21,23 +21,23 @@ build: program systemd-service man
 
 program:
 	$(call require_env,SYSTEMD_UTIL_DIR)
-	@$(CARGO) build --release $(CARGOFLAGS)
+	$(CARGO) build --release $(CARGOFLAGS)
 
 systemd-service:
 	$(call require_env,SYSTEMD_SYSTEM_GENERATOR_DIR)
-	@sed -e 's,@SYSTEMD_SYSTEM_GENERATOR_DIR@,$(SYSTEMD_SYSTEM_GENERATOR_DIR),' \
+	sed -e 's,@SYSTEMD_SYSTEM_GENERATOR_DIR@,$(SYSTEMD_SYSTEM_GENERATOR_DIR),' \
 		< units/systemd-zram-setup@.service.in \
 		> units/systemd-zram-setup@.service
 
 man:
-	@$(RONN) --organization="zram-generator developers" man/*.md
+	$(RONN) --organization="zram-generator developers" man/*.md
 
 check: program
-	@$(CARGO) test --release $(CARGOFLAGS)
+	$(CARGO) test --release $(CARGOFLAGS)
 
 clean:
-	@$(CARGO) clean
-	@rm -f units/systemd-zram-setup@.service
+	$(CARGO) clean
+	rm -f units/systemd-zram-setup@.service
 
 install: build
 	$(call require_env,SYSTEMD_SYSTEM_GENERATOR_DIR)
