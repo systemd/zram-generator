@@ -39,7 +39,11 @@ clean:
 	$(CARGO) clean
 	rm -f units/systemd-zram-setup@.service
 
+ifndef NOBUILD
 install: build
+endif
+
+install:
 	$(call require_env,SYSTEMD_SYSTEM_GENERATOR_DIR)
 	$(call require_env,SYSTEMD_SYSTEM_UNIT_DIR)
 	$(call require_env,PREFIX)
