@@ -41,6 +41,7 @@ fn get_opts() -> Opts {
             .number_of_values(2)
             .conflicts_with_all(&["setup-device", "reset-device"]),
         )
+        .after_help(&*format!("Uses {}.", setup::SYSTEMD_MAKEFS_COMMAND))
         .get_matches();
 
     let val = opts
