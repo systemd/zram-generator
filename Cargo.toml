@@ -25,5 +25,5 @@ fs_extra = "1.1"
 
 [profile.release]
 lto = "thin"
-opt-level = "z"  # Optimize for size.
+opt-level = "z"
 codegen-units = 1
