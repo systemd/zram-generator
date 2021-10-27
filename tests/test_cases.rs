@@ -5,6 +5,7 @@ use zram_generator::{config, generator};
 use anyhow::Result;
 use fs_extra::dir::{copy, CopyOptions};
 use std::fs;
+use std::io::{self, Write};
 use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
@@ -150,6 +151,9 @@ fn test_07_mount_point() {
 #[test]
 fn test_07a_mount_point_excl() {
     if !Path::new("tests/07a-mount-point-excl").exists() {
+        io::stdout()
+            .write_all(b"07a-mount-point-excl doesn't exist: assuming package, skipping\n")
+            .unwrap();
         return;
     }
 
