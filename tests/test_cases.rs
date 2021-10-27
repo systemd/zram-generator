@@ -211,3 +211,37 @@ fn test_08_plain_device() {
     assert_eq!(d.effective_fs_type(), "ext2");
     assert_eq!(d.options, "discard");
 }
+
+#[test]
+fn test_10_example() {
+    if !Path::new("tests/10-example").exists() {
+        io::stdout()
+            .write_all(b"10-example doesn't exist: assuming package, skipping\n")
+            .unwrap();
+        return;
+    }
+
+    let devices = test_generation("tests/10-example").unwrap();
+    assert_eq!(devices.len(), 2);
+
+    for d in &devices {
+        match d.name.as_str() {
+            "zram0" => {
+                assert!(d.is_swap());
+                assert_eq!(d.host_memory_limit_mb.unwrap(), 9048);
+                assert_eq!(d.zram_fraction, 0.10);
+                assert_eq!(d.max_zram_size_mb, Some(512));
+                assert_eq!(d.compression_algorithm.as_deref(), Some("lzo-rle"));
+                assert_eq!(d.options, "");
+            }
+            "zram1" => {
+                assert_eq!(d.fs_type.as_ref().unwrap(), "ext2");
+                assert_eq!(d.effective_fs_type(), "ext2");
+                assert!(d.host_memory_limit_mb.is_none());
+                assert_eq!(d.zram_fraction, 0.1);
+                assert_eq!(d.options, "discard");
+            }
+            _ => panic!("Unexpected device {}", d),
+        }
+    }
+}
