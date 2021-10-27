@@ -58,8 +58,11 @@ fn test_generation(path: &str) -> Result<Vec<config::Device>> {
         .arg(srcroot.join("run.expected"))
         .arg(root.join("run"))
         .output()?;
-    println!("stdout:\n{}", String::from_utf8_lossy(&diff.stdout));
-    println!("stderr:\n{}", String::from_utf8_lossy(&diff.stderr));
+    for (h, d) in [("stdout", &diff.stdout), ("stderr", &diff.stderr)] {
+        if !d.is_empty() {
+            println!("{}:{}", h, String::from_utf8_lossy(d));
+        }
+    }
     assert!(diff.status.success());
 
     Ok(devices)
@@ -69,7 +72,7 @@ fn test_generation(path: &str) -> Result<Vec<config::Device>> {
 fn test_01_basic() {
     let devices = test_generation("tests/01-basic").unwrap();
     assert_eq!(devices.len(), 1);
-    let d = devices.iter().next().unwrap();
+    let d = &devices[0];
     assert!(d.is_swap());
     assert_eq!(d.host_memory_limit_mb, None);
     assert_eq!(d.zram_fraction, 0.5);
@@ -80,7 +83,7 @@ fn test_01_basic() {
 fn test_02_zstd() {
     let devices = test_generation("tests/02-zstd").unwrap();
     assert_eq!(devices.len(), 1);
-    let d = devices.iter().next().unwrap();
+    let d = &devices[0];
     assert!(d.is_swap());
     assert_eq!(d.host_memory_limit_mb.unwrap(), 2050);
     assert_eq!(d.zram_fraction, 0.75);
@@ -128,7 +131,7 @@ fn test_05_kernel_disabled() {
 fn test_06_kernel_enabled() {
     let devices = test_generation("tests/06-kernel-enabled").unwrap();
     assert_eq!(devices.len(), 1);
-    let d = devices.iter().next().unwrap();
+    let d = &devices[0];
     assert!(d.is_swap());
     assert_eq!(d.host_memory_limit_mb, None);
     assert_eq!(d.zram_fraction, 0.5);
@@ -195,7 +198,7 @@ fn test_07_devices(devices: Vec<config::Device>) {
 fn test_08_plain_device() {
     let devices = test_generation("tests/08-plain-device").unwrap();
     assert_eq!(devices.len(), 1);
-    let d = devices.iter().next().unwrap();
+    let d = &devices[0];
     assert!(!d.is_swap());
     assert_eq!(d.host_memory_limit_mb, None);
     assert_eq!(d.zram_fraction, 0.5);
