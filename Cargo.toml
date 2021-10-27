@@ -27,3 +27,4 @@ fs_extra = "1.1"
 lto = "thin"
 opt-level = "z"
 codegen-units = 1
+panic = "abort"
