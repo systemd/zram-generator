@@ -318,7 +318,12 @@ fn verify_mount_point(val: &str) -> Result<PathBuf> {
 fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
     match key {
         "host-memory-limit" | "memory-limit" => {
-            /* memory-limit is for backwards compat. host-memory-limit name is preferred. */
+            if key == "memory-limit" {
+                warn!(
+                    "{}: deprecated {} configuration key set. Use {} = instead!",
+                    dev.name, key, "host-memory-limit"
+                );
+            }
             dev.host_memory_limit_mb = parse_optional_size(value)?;
         }
 

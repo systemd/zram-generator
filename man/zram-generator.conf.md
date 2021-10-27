@@ -54,9 +54,6 @@ Devices with the final size of *0* will be discarded.
 
   Defaults to *none*.
 
-  For compatibility with earlier versions, `memory-limit` is allowed as an alias for this option.
-  Its use is discouraged, and administrators should migrate to `host-memory-limit`.
-
 * `zram-size`=
 
   Sets the size of the zram device as a function of *MemTotal*, available as the `ram` variable.
@@ -152,6 +149,10 @@ A piecewise-linear size 1:1 for the first 4G, then 1:2 above, up to a max of 32G
 
 
 ## OBSOLETE OPTIONS
+
+* `memory-limit`=
+
+  Compatibility alias for `host-memory-limit`.
 
 * `zram-fraction`=
 
