@@ -10,7 +10,7 @@ license = "MIT"
 description = "Systemd unit generator for zram swap devices."
 homepage = "https://github.com/systemd/zram-generator"
 edition = "2018"
-exclude = ["tests/07a-mount-point-excl"]
+exclude = ["tests/07a-mount-point-excl", "tests/10-example"]
 
 [dependencies]
 anyhow = "1.0.12"
