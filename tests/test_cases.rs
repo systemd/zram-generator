@@ -81,7 +81,6 @@ fn test_01_basic() {
     assert!(d.is_swap());
     assert_eq!(d.host_memory_limit_mb, None);
     assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
-    assert_eq!(d.zram_fraction, None);
     assert_eq!(d.options, "discard");
 }
 
@@ -92,8 +91,7 @@ fn test_02_zstd() {
     let d = &devices[0];
     assert!(d.is_swap());
     assert_eq!(d.host_memory_limit_mb, Some(2050));
-    assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
-    assert_eq!(d.zram_fraction, Some(0.75));
+    assert_eq!(d.zram_size.as_ref().map(z_s_name), Some("ram * 0.75"));
     assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
     assert_eq!(d.options, "discard");
 }
@@ -116,13 +114,11 @@ fn test_04_dropins() {
             "zram0" => {
                 assert_eq!(d.host_memory_limit_mb, Some(1235));
                 assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
-                assert_eq!(d.zram_fraction, None);
                 assert_eq!(d.options, "discard");
             }
             "zram2" => {
                 assert_eq!(d.host_memory_limit_mb, None);
-                assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
-                assert_eq!(d.zram_fraction, Some(0.8));
+                assert_eq!(d.zram_size.as_ref().map(z_s_name), Some("ram*0.8"));
                 assert_eq!(d.options, "");
             }
             _ => panic!("Unexpected device {}", d),
@@ -144,7 +140,6 @@ fn test_06_kernel_enabled() {
     assert!(d.is_swap());
     assert_eq!(d.host_memory_limit_mb, None);
     assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
-    assert_eq!(d.zram_fraction, None);
     assert_eq!(d.options, "discard");
 }
 
@@ -176,7 +171,6 @@ fn test_07_devices(devices: Vec<config::Device>) {
         assert!(!d.is_swap());
         assert_eq!(d.host_memory_limit_mb, None);
         assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
-        assert_eq!(d.zram_fraction, None);
         assert_eq!(d.fs_type.as_ref().unwrap(), "ext4");
         assert_eq!(d.effective_fs_type(), "ext4");
         match &d.name[..] {
@@ -216,7 +210,6 @@ fn test_08_plain_device() {
     assert!(!d.is_swap());
     assert_eq!(d.host_memory_limit_mb, None);
     assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
-    assert_eq!(d.zram_fraction, None);
     assert!(d.mount_point.is_none());
     assert_eq!(d.fs_type.as_ref().unwrap(), "ext2");
     assert_eq!(d.effective_fs_type(), "ext2");
@@ -234,8 +227,6 @@ fn test_09_zram_size() {
         d.zram_size.as_ref().map(z_s_name),
         Some("min(0.75 * ram, 6000)")
     );
-    assert_eq!(d.zram_fraction, None);
-    assert_eq!(d.max_zram_size_mb, None);
     assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
 }
 
@@ -260,8 +251,6 @@ fn test_10_example() {
                     d.zram_size.as_ref().map(z_s_name),
                     Some("min(ram / 10, 2048)")
                 );
-                assert_eq!(d.zram_fraction, None);
-                assert_eq!(d.max_zram_size_mb, None);
                 assert_eq!(d.compression_algorithm.as_deref(), Some("lzo-rle"));
                 assert_eq!(d.options, "");
             }
@@ -269,9 +258,31 @@ fn test_10_example() {
                 assert_eq!(d.fs_type.as_ref().unwrap(), "ext2");
                 assert_eq!(d.effective_fs_type(), "ext2");
                 assert_eq!(d.zram_size.as_ref().map(z_s_name), Some("ram / 10"));
-                assert_eq!(d.zram_fraction, None);
-                assert_eq!(d.max_zram_size_mb, None);
                 assert_eq!(d.options, "discard");
+            }
+            _ => panic!("Unexpected device {}", d),
+        }
+    }
+}
+
+#[test]
+fn test_11_obsolete() {
+    let devices = test_generation("tests/11-obsolete").unwrap();
+    assert_eq!(devices.len(), 2);
+
+    for d in &devices {
+        assert!(d.is_swap());
+        assert_eq!(d.options, "discard");
+        match d.name.as_str() {
+            "zram0" => {
+                assert_eq!(d.host_memory_limit_mb, Some(100000));
+                assert_eq!(d.zram_fraction, Some(0.1));
+                assert_eq!(d.max_zram_size_mb, Some(Some(2048)));
+            }
+            "zram1" => {
+                assert_eq!(d.host_memory_limit_mb, None);
+                assert_eq!(d.zram_fraction, Some(0.1));
+                assert_eq!(d.max_zram_size_mb, Some(None));
             }
             _ => panic!("Unexpected device {}", d),
         }
