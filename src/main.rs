@@ -32,7 +32,7 @@ fn get_opts() -> Opts {
         )
         .arg(Arg::from_usage("--reset-device 'Reset (destroy) a device'"))
         .arg(Arg::from_usage(
-            "<directory/device> 'Target directory for generator or device to operate on'",
+            "<directory|device> 'Target directory for generator or device to operate on'",
         ))
         .arg(
             Arg::from_usage(

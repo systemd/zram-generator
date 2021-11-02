@@ -38,11 +38,11 @@ Create `/etc/systemd/zram-generator.conf`:
 ```ini
 # /etc/systemd/zram-generator.conf
 [zram0]
-zram-fraction = 0.5
+zram-size = ram / 2
 ```
 
 A zram device will be created for each section. No actual
-configuration is necessary (the default of `zram-fraction=0.5` will be
+configuration is necessary (the default of `zram-size = min(ram / 2, 4096)` will be
 used unless overriden), but the configuration file with at least one
 section must exist.
 
