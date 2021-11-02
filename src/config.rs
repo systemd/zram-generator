@@ -22,6 +22,7 @@ pub struct Device {
     /// Default: `DEFAULT_ZRAM_SIZE`
     pub zram_size: Option<(String, fasteval::ExpressionI, fasteval::Slab)>,
     pub compression_algorithm: Option<String>,
+    pub writeback_dev: Option<PathBuf>,
     pub disksize: u64,
 
     pub swap_priority: i32,
@@ -45,6 +46,7 @@ impl Device {
             host_memory_limit_mb: None,
             zram_size: None,
             compression_algorithm: None,
+            writeback_dev: None,
             disksize: 0,
             swap_priority: 100,
             mount_point: None,
@@ -123,7 +125,7 @@ impl fmt::Display for Device {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}: host-memory-limit={} zram-size={} compression-algorithm={} options={}",
+            "{}: host-memory-limit={} zram-size={} compression-algorithm={} writeback-device={} options={}",
             self.name,
             OptMB(self.host_memory_limit_mb),
             self.zram_size
@@ -131,6 +133,7 @@ impl fmt::Display for Device {
                 .map(|zs| &zs.0[..])
                 .unwrap_or(DEFAULT_ZRAM_SIZE),
             self.compression_algorithm.as_deref().unwrap_or("<default>"),
+            self.writeback_dev.as_deref().unwrap_or_else(|| Path::new("<none>")).display(),
             self.options
         )?;
         if self.zram_fraction.is_some() || self.max_zram_size_mb.is_some() {
@@ -301,15 +304,15 @@ fn parse_swap_priority(val: &str) -> Result<i32> {
     }
 }
 
-fn verify_mount_point(val: &str) -> Result<PathBuf> {
+fn verify_mount_point(key: &str, val: &str) -> Result<PathBuf> {
     let path = Path::new(val);
 
     if path.is_relative() {
-        return Err(anyhow!("mount-point {} is not absolute", val));
+        return Err(anyhow!("{} {} is not absolute", key, val));
     }
 
     if path.components().any(|c| c == Component::ParentDir) {
-        return Err(anyhow!("mount-point {:#?} is not normalized", path));
+        return Err(anyhow!("{} {:#?} is not normalized", key, path));
     }
 
     Ok(path.components().collect()) // normalise away /./ components
@@ -337,12 +340,16 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
             dev.compression_algorithm = Some(value.to_string());
         }
 
+        "writeback-device" => {
+            dev.writeback_dev = Some(verify_mount_point(key, value)?);
+        }
+
         "swap-priority" => {
             dev.swap_priority = parse_swap_priority(value)?;
         }
 
         "mount-point" => {
-            dev.mount_point = Some(verify_mount_point(value)?);
+            dev.mount_point = Some(verify_mount_point(key, value)?);
         }
 
         "fs-type" => {
@@ -499,7 +506,7 @@ foo=0
     #[test]
     fn test_verify_mount_point() {
         for e in ["foo/bar", "/foo/../bar", "/foo/.."] {
-            assert!(verify_mount_point(e).is_err(), "{}", e);
+            assert!(verify_mount_point("test", e).is_err(), "{}", e);
         }
 
         for (p, o) in [
@@ -510,7 +517,7 @@ foo=0
             ("/foo/./bar/", "/foo/bar"),
         ] {
             assert_eq!(
-                verify_mount_point(p).unwrap(),
+                verify_mount_point("test", p).unwrap(),
                 Path::new(o),
                 "{} vs {}",
                 p,

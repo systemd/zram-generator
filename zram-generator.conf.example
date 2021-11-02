@@ -28,6 +28,10 @@ compression-algorithm = lzo-rle
 # Setting this to the empty string clears the option.
 options =
 
+# Write incompressible pages to this device,
+# as there's no gain from keeping them in RAM
+writeback-device = /dev/zvol/tarta-zoot/swap-writeback
+
 # The following options are deprecated, and override zram-size.
 # These values would be equivalent to the zram-size setting above.
 #zram-fraction = 0.10
