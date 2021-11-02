@@ -233,7 +233,7 @@ fn mount_unit_name(path: &Path) -> String {
 
     let trimmed = path.to_str().unwrap().trim_matches('/');
     if trimmed.is_empty() {
-        return "-.mount".to_string();
+        "-.mount".to_string()
     } else {
         let mut obuf = Vec::with_capacity(path.as_os_str().len() + ".mount".len());
         let mut just_slash = false;
@@ -288,7 +288,7 @@ BindsTo={}
 
     write_contents(
         output_directory,
-        &mount_name,
+        mount_name,
         &format!(
             "\
 [Unit]

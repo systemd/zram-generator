@@ -72,7 +72,5 @@ jobs:
           override: true
           profile: minimal
           components: clippy
-      - name: Check formatting
-        uses: actions-rs/clippy@master
-        with:
-          args: -- -D warnings
+      - name: Validate clippy
+        run: SYSTEMD_UTIL_DIR=/ cargo clippy -- -D warnings

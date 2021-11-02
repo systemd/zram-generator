@@ -172,14 +172,14 @@ impl fasteval::EvalNamespace for RamNs {
 }
 
 pub fn read_device(root: &Path, kernel_override: bool, name: &str) -> Result<Option<Device>> {
-    let memtotal_mb = get_total_memory_kb(&root)? as f64 / 1024.;
+    let memtotal_mb = get_total_memory_kb(root)? as f64 / 1024.;
     Ok(read_devices(root, kernel_override, memtotal_mb as u64)?
         .remove(name)
         .filter(|dev| dev.disksize > 0))
 }
 
 pub fn read_all_devices(root: &Path, kernel_override: bool) -> Result<Vec<Device>> {
-    let memtotal_mb = get_total_memory_kb(&root)? as f64 / 1024.;
+    let memtotal_mb = get_total_memory_kb(root)? as f64 / 1024.;
     Ok(read_devices(root, kernel_override, memtotal_mb as u64)?
         .into_iter()
         .filter(|(_, dev)| dev.disksize > 0)
