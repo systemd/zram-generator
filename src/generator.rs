@@ -170,6 +170,22 @@ fn handle_device(output_directory: &Path, device: &Device) -> Result<()> {
     }
 }
 
+fn handle_zram_bindings(output_directory: &Path, device: &Device, specific: &str) -> Result<()> {
+    /* systemd-zram-setup@.service.
+     * We use the packaged unit, and only need to provide a small drop-in. */
+    write_contents(
+        output_directory,
+        &format!("systemd-zram-setup@{}.service.d/bindings.conf", device.name),
+        &format!(
+            "\
+[Unit]
+BindsTo={}
+",
+            specific
+        ),
+    )
+}
+
 fn handle_zram_swap(output_directory: &Path, device: &Device) -> Result<()> {
     let swap_name = format!("dev-{}.swap", device.name);
 
@@ -180,19 +196,7 @@ fn handle_zram_swap(output_directory: &Path, device: &Device) -> Result<()> {
         device.disksize / 1024 / 1024
     );
 
-    /* systemd-zram-setup@.service.
-     * We use the packaged unit, and only need to provide a small drop-in. */
-    write_contents(
-        output_directory,
-        &format!(
-            "systemd-zram-setup@{}.service.d/bindsto-swap.conf",
-            device.name
-        ),
-        "\
-[Unit]
-BindsTo=dev-%i.swap
-",
-    )?;
+    handle_zram_bindings(output_directory, device, "dev-%i.swap")?;
 
     /* dev-zramX.swap */
     write_contents(
@@ -269,22 +273,7 @@ fn handle_zram_mount_point(output_directory: &Path, device: &Device) -> Result<(
         device.disksize / 1024 / 1024
     );
 
-    /* systemd-zram-setup@.service.
-     * We use the packaged unit, and only need to provide a small drop-in. */
-    write_contents(
-        output_directory,
-        &format!(
-            "systemd-zram-setup@{}.service.d/bindsto-mount.conf",
-            device.name
-        ),
-        &format!(
-            "\
-[Unit]
-BindsTo={}
-",
-            mount_name
-        ),
-    )?;
+    handle_zram_bindings(output_directory, device, mount_name)?;
 
     write_contents(
         output_directory,
