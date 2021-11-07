@@ -45,7 +45,7 @@ fn get_opts() -> Opts {
         .get_matches();
 
     let val = opts
-        .value_of("directory/device")
+        .value_of("directory|device")
         .expect("clap invariant")
         .to_string();
     if opts.is_present("setup-device") {
