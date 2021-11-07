@@ -35,6 +35,10 @@ man:
 check: program
 	$(CARGO) test --release $(CARGOFLAGS)
 
+clippy:
+	$(call require_env,SYSTEMD_UTIL_DIR)
+	$(CARGO) clippy $(CARGOFLAGS)
+
 clean:
 	$(CARGO) clean
 	rm -f units/systemd-zram-setup@.service
