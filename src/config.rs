@@ -318,12 +318,7 @@ fn verify_mount_point(val: &str) -> Result<PathBuf> {
 fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
     match key {
         "host-memory-limit" | "memory-limit" => {
-            if key == "memory-limit" {
-                warn!(
-                    "{}: deprecated {} configuration key set. Use {} = instead!",
-                    dev.name, key, "host-memory-limit"
-                );
-            }
+            /* memory-limit is for backwards compat. host-memory-limit name is preferred. */
             dev.host_memory_limit_mb = parse_optional_size(value)?;
         }
 
@@ -359,10 +354,8 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
         }
 
         "zram-fraction" => {
-            warn!(
-                "{}: deprecated {} configuration key set. Use {} = instead!",
-                dev.name, key, "zram-size"
-            );
+            /* zram-fraction is for backwards compat. zram-size = is preferred. */
+
             dev.zram_fraction = Some(
                 value
                     .parse()
@@ -378,10 +371,8 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
         }
 
         "max-zram-size" => {
-            warn!(
-                "{}: deprecated {} configuration key set. Use {} = instead!",
-                dev.name, key, "zram-size"
-            );
+            /* zram-fraction is for backwards compat. zram-size = is preferred. */
+
             dev.max_zram_size_mb = Some(parse_optional_size(value)?);
         }
 
