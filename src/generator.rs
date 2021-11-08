@@ -245,7 +245,7 @@ fn mount_unit_name(path: &Path) -> String {
             match b {
                 b'/' => obuf.push(b'-'),
                 b'.' if i == 0 => write!(obuf, "\\x{:02x}", b'.').unwrap(),
-                b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' | b'_' | b'.' => obuf.push(b),
+                b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' | b':' | b'_' | b'.' => obuf.push(b),
                 _ => write!(obuf, "\\x{:02x}", b).unwrap(),
             }
         }
