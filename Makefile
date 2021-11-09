@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: MIT
 
-INSTALL = install
-CARGO = cargo
-CARGOFLAGS =
-RONN = ronn
-PKG_CONFIG = pkg-config
-PREFIX = /usr
+INSTALL ?= install
+CARGO ?= cargo
+CARGOFLAGS ?=
+RONN ?= ronn
+PKG_CONFIG ?= pkg-config
+PREFIX ?= /usr
 
 SYSTEMD_UTIL_DIR := $(shell $(PKG_CONFIG) --variable=systemdutildir systemd)
 SYSTEMD_SYSTEM_UNIT_DIR := $(shell $(PKG_CONFIG) --variable=systemdsystemunitdir systemd)
