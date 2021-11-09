@@ -73,4 +73,4 @@ jobs:
           profile: minimal
           components: clippy
       - name: Validate clippy
-        run: SYSTEMD_UTIL_DIR=/ cargo clippy -- -D warnings
+        run: make clippy CARGOFLAGS="-- -D warnings"
