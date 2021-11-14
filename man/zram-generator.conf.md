@@ -71,6 +71,15 @@ Devices with the final size of *0* will be discarded.
 
   If unset, none will be configured and the kernel's default will be used.
 
+* `writeback-device`=
+
+  Write incompressible pages, for which no gain was achieved, to the specified device under memory pressure.
+  This corresponds to the */sys/block/zramX/backing_dev* parameter.
+
+  Takes a path to a block device, like */dev/disk/by-partuuid/2d54ffa0-01* or */dev/zvol/tarta-zoot/swap-writeback*.
+
+  If unset, none is used, and incompressible pages are kept in RAM.
+
 * `swap-priority`=
 
   Controls the relative swap priority, a value between -1 and 32767. Higher numbers indicate higher priority.

@@ -5,6 +5,7 @@ use anyhow::{anyhow, Context, Result};
 use log::warn;
 use std::fs;
 use std::io::ErrorKind;
+use std::os::unix::ffi::OsStrExt;
 use std::os::unix::process::ExitStatusExt;
 use std::path::Path;
 use std::process::Command;
@@ -42,6 +43,16 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
         }
     }
 
+    if let Some(ref wb_dev) = device.writeback_dev {
+        let writeback_path = device_sysfs_path.join("backing_dev");
+        fs::write(&writeback_path, wb_dev.as_os_str().as_bytes()).with_context(|| {
+            format!(
+                "Failed to configure write-back device into {}",
+                writeback_path.display()
+            )
+        })?;
+    }
+
     let disksize_path = device_sysfs_path.join("disksize");
     fs::write(&disksize_path, format!("{}", device.disksize)).with_context(|| {
         format!(
@@ -51,7 +62,6 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
     })?;
 
     let fs_type = device.effective_fs_type();
-
     match Command::new(SYSTEMD_MAKEFS_COMMAND).arg(fs_type).arg(Path::new("/dev").join(device_name)).status() {
         Ok(status) =>
             match status.code() {
