@@ -27,7 +27,7 @@ nix = "0.23"
 ctor = "0.1"
 
 [profile.release]
-lto = "thin"
+lto = true
 opt-level = "z"
 codegen-units = 1
 panic = "abort"
