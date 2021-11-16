@@ -23,7 +23,7 @@ fasteval = { version = "0.2", default-features = false }
 [dev-dependencies]
 tempfile = "3"
 fs_extra = "1.1"
-nix = "0.23"
+nix = ">=0.22, <0.24"
 ctor = "0.1"
 
 [profile.release]
