@@ -16,11 +16,22 @@ fn unshorn() {
     use std::os::unix::fs::symlink;
 
     let (uid, gid) = (unistd::geteuid(), unistd::getegid());
-    sched::unshare(sched::CloneFlags::CLONE_NEWUSER | sched::CloneFlags::CLONE_NEWNS)
-        .expect("unshare(NEWUSER | NEWNS)");
-    fs::write("/proc/self/setgroups", b"deny").unwrap();
-    fs::write("/proc/self/uid_map", format!("0 {} 1", uid)).unwrap();
-    fs::write("/proc/self/gid_map", format!("0 {} 1", gid)).unwrap();
+    if !uid.is_root() {
+        sched::unshare(sched::CloneFlags::CLONE_NEWUSER).expect("unshare(NEWUSER)");
+        fs::write("/proc/self/setgroups", b"deny").unwrap();
+        fs::write("/proc/self/uid_map", format!("0 {} 1", uid)).unwrap();
+        fs::write("/proc/self/gid_map", format!("0 {} 1", gid)).unwrap();
+    }
+
+    sched::unshare(sched::CloneFlags::CLONE_NEWNS).expect("unshare(NEWNS)");
+    mount::mount::<_, _, str, str>(
+        Some("none"),
+        "/",
+        None,
+        mount::MsFlags::MS_REC | mount::MsFlags::MS_PRIVATE,
+        None,
+    )
+    .unwrap();
 
     mount::mount::<str, _, _, str>(None, "/proc", Some("tmpfs"), mount::MsFlags::empty(), None)
         .unwrap();
