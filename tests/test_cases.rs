@@ -7,17 +7,23 @@ use fs_extra::dir::{copy, CopyOptions};
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
-use std::process::Command;
+use std::process::{exit, Command};
 use tempfile::TempDir;
 
 #[ctor::ctor]
 fn unshorn() {
-    use nix::{mount, sched, unistd};
+    use nix::{errno, mount, sched, unistd};
     use std::os::unix::fs::symlink;
 
     let (uid, gid) = (unistd::geteuid(), unistd::getegid());
     if !uid.is_root() {
-        sched::unshare(sched::CloneFlags::CLONE_NEWUSER).expect("unshare(NEWUSER)");
+        match sched::unshare(sched::CloneFlags::CLONE_NEWUSER) {
+            Err(errno::Errno::EPERM) => {
+                eprintln!("unshare(NEWUSER) forbidden and not running as root: skipping tests");
+                exit(0);
+            }
+            r => r.expect("unshare(NEWUSER)"),
+        }
         fs::write("/proc/self/setgroups", b"deny").unwrap();
         fs::write("/proc/self/uid_map", format!("0 {} 1", uid)).unwrap();
         fs::write("/proc/self/gid_map", format!("0 {} 1", gid)).unwrap();
