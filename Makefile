@@ -22,7 +22,10 @@ require_env = @[ -n "$($(1))" ] || { echo "\$$$(1) empty!" >&2; exit 1; }
 .DEFAULT: build
 .PHONY: build systemd-service program man check clean install
 
-build: program systemd-service man
+build: program systemd-service
+ifndef NOMAN
+build: man
+endif
 
 program:
 	$(call require_env,SYSTEMD_UTIL_DIR)
@@ -59,5 +62,7 @@ install:
 	$(INSTALL) -Dpm755 target/$(BUILDTYPE)/zram-generator -t $(DESTDIR)$(SYSTEMD_SYSTEM_GENERATOR_DIR)/
 	$(INSTALL) -Dpm644 units/systemd-zram-setup@.service -t $(DESTDIR)$(SYSTEMD_SYSTEM_UNIT_DIR)/
 	$(INSTALL) -Dpm644 zram-generator.conf.example -t $(DESTDIR)$(PREFIX)/share/doc/zram-generator/
+ifndef NOMAN
 	$(INSTALL) -Dpm644 man/zram-generator.8 -t $(DESTDIR)$(PREFIX)/share/man/man8/
 	$(INSTALL) -Dpm644 man/zram-generator.conf.5 -t $(DESTDIR)$(PREFIX)/share/man/man5/
+endif
