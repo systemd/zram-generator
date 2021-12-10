@@ -45,12 +45,16 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
 
     if let Some(ref wb_dev) = device.writeback_dev {
         let writeback_path = device_sysfs_path.join("backing_dev");
-        fs::write(&writeback_path, wb_dev.as_os_str().as_bytes()).with_context(|| {
-            format!(
-                "Failed to configure write-back device into {}",
-                writeback_path.display()
-            )
-        })?;
+        if writeback_path.exists() {
+            fs::write(&writeback_path, wb_dev.as_os_str().as_bytes()).with_context(|| {
+                format!(
+                    "Failed to configure write-back device into {}",
+                    writeback_path.display()
+                )
+            })?;
+        } else {
+            warn!("Warning: writeback-device={} set for {}, but system doesn't support write-back. Ignoring.", writeback_path.display(), device_name)
+        }
     }
 
     let disksize_path = device_sysfs_path.join("disksize");
