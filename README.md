@@ -56,6 +56,17 @@ mount-point = /var/tmp
 
 This will set up a /dev/zram1 with ext2 and generate a mount unit for /var/tmp.
 
+In case you want this path to be user-writable, you can use following
+"high-quality hack" until `systemd-makefs` provides a proper mechanism to
+set ownership of a generated filesystem. For the above example, create an
+override for `systemd-zram-setup@zram1.service`, for example with `systemctl edit`,
+containing the following (note the sticky bit as required for [/var]/tmp):
+
+```ini
+[Service]
+ExecStartPost=/bin/sh -c 'd=$(mktemp -d); mount "$1" "$d"; chmod 1777 "$d"; umount "$d"; rmdir "$d"' _ /dev/%i
+```
+
 ### Rust
 
 The second purpose of this program is to serve as an example of a systemd
