@@ -63,8 +63,14 @@ set ownership of a generated filesystem. For the above example, create a
 
 ```ini
 [Service]
-ExecStartPost=/bin/sh -c 'd=$(mktemp -d); mount "$1" "$d"; chmod 777 "$d"; umount "$d"; rmdir "$d"' _ /dev/%i
+ExecStartPost=/bin/sh -c 'd=$(mktemp -d); mount "$1" "$d"; chmod 1777 "$d"; umount "$d"; rmdir "$d"' _ /dev/%i
 ```
+
+`1777`, while allowing anyone to create files, also enables the sticky bit (aka
+restricted deletion flag) for the mount path. This prevents unprivileged users
+from removing or renaming a file or directory which they do not own and should
+be preferred over plain `0777` especially for world-writable places like `/tmp`
+and `/var/tmp`.
 
 ### Rust
 
