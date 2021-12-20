@@ -59,7 +59,8 @@ This will set up a /dev/zram1 with ext2 and generate a mount unit for /var/tmp.
 In case you want this path to be user-writable, you can use following
 "high-quality hack" until `systemd-makefs` provides a proper mechanism to
 set ownership of a generated filesystem. For the above example, create a
-`/etc/systemd/system/systemd-zram-setup@zram1.service.d/override.conf` file:
+`/etc/systemd/system/systemd-zram-setup@zram1.service.d/override.conf` file
+either manually or by calling `systemctl edit systemd-zram-setup@zram1.service`:
 
 ```ini
 [Service]
