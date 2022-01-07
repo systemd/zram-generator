@@ -51,10 +51,10 @@ section must exist.
 ```ini
 # /etc/systemd/zram-generator.conf
 [zram1]
-mount-point = /var/tmp
+mount-point = /var/compressed
 ```
 
-This will set up a /dev/zram1 with ext2 and generate a mount unit for /var/tmp.
+This will set up a /dev/zram1 with ext2 and generate a mount unit for /var/compressed.
 
 In case you want this path to be user-writable, you can use following
 "high-quality hack" until `systemd-makefs` provides a proper mechanism to
