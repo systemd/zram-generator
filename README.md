@@ -56,9 +56,15 @@ mount-point = /var/compressed
 
 This will set up a /dev/zram1 with ext2 and generate a mount unit for /var/compressed.
 
-In case you want this path to be user-writable, you can use following
-"high-quality hack" until `systemd-makefs` provides a proper mechanism to
-set ownership of a generated filesystem. For the above example, create an
+In case you want this path to be user-writable, since util-linux v2.39 you can use
+```ini
+[zram1]
+options = X-mount.mode=1777
+```
+(and/or the relevant `X.mount.{owner,group}=` arguments, cf. mount(8)).
+
+Otherwise, you can use the following "high-quality hack":
+for the above example, create an
 override for `systemd-zram-setup@zram1.service`, for example with `systemctl edit`,
 containing the following (note the sticky bit as required for [/var]/tmp):
 
