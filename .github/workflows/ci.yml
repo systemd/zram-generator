@@ -22,7 +22,7 @@ jobs:
           - nightly
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install linux-modules-extra-$(uname -r)
         run: |
           sudo apt update
@@ -30,7 +30,7 @@ jobs:
       - name: Insert zram module
         run: sudo modprobe -v zram
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.7
         with:
           toolchain: ${{ matrix.rust }}
           override: true
@@ -45,9 +45,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.7
         with:
           toolchain: stable
           override: true
@@ -64,9 +64,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.7
         with:
           toolchain: nightly
           override: true
