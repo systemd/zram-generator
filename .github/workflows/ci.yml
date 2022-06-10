@@ -60,15 +60,21 @@ jobs:
           args: -- --check
 
   clippy:
-    name: clippy
+    name: clippy (rust ${{ matrix.rust }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - beta
+          - nightly
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install Rust
         uses: actions-rs/toolchain@v1.0.7
         with:
-          toolchain: beta
+          toolchain: ${{ matrix.rust }}
           override: true
           profile: minimal
           components: clippy
