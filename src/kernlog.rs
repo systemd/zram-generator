@@ -68,7 +68,8 @@ impl log::Log for KernelLog {
         }
 
         if let Ok(mut kmsg) = self.kmsg.lock() {
-            match kmsg.as_mut() {
+            let is_as_mut = kmsg.as_mut();
+            match is_as_mut {
                 Some(kmsg) => _write_kmsg(kmsg, record),
                 None => _write_stdout(record),
             }
