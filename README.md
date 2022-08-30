@@ -93,6 +93,8 @@ To install directly from sources, execute `make build && sudo make install NOBUI
 * `zram-generator.conf.example` is copied into `/usr/share/doc/zram-generator/`
 You need though create your own config file at one of the locations listed above.
 
+To install and configure with puppet [puppet-zram_generator](https://github.com/voxpupuli/puppet-zram_generator) is available.
+
 #### tl;dr
 
 - Install `zram-generator` using one of the methods listed above.
