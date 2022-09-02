@@ -393,7 +393,7 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
 
 fn _get_total_memory_kb(path: &Path) -> Result<u64> {
     for line in
-        BufReader::new(fs::File::open(&path).with_context(|| {
+        BufReader::new(fs::File::open(path).with_context(|| {
             format!("Failed to read memory information from {}", path.display())
         })?)
         .lines()

@@ -15,7 +15,7 @@ fn make_parent(of: &Path) -> Result<()> {
     let parent = of
         .parent()
         .ok_or_else(|| anyhow!("Couldn't get parent of {}", of.display()))?;
-    fs::create_dir_all(&parent)?;
+    fs::create_dir_all(parent)?;
     Ok(())
 }
 
@@ -314,7 +314,7 @@ Options={options}
     /* enablement symlink */
     let symlink_path = output_directory
         .join("local-fs.target.wants")
-        .join(&mount_name);
+        .join(mount_name);
     let target_path = format!("../{}", mount_name);
     make_symlink(&target_path, &symlink_path)?;
 
