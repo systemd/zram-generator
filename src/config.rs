@@ -139,7 +139,7 @@ impl fmt::Display for Device {
         if self.zram_fraction.is_some() || self.max_zram_size_mb.is_some() {
             f.write_str(" (")?;
             if let Some(zf) = self.zram_fraction {
-                write!(f, "zram-fraction={}", zf)?;
+                write!(f, "zram-fraction={zf}")?;
             }
             if self.max_zram_size_mb.is_some() {
                 f.write_str(" ")?;
@@ -157,7 +157,7 @@ struct OptMB(Option<u64>);
 impl fmt::Display for OptMB {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
-            Some(val) => write!(f, "{}MB", val),
+            Some(val) => write!(f, "{val}MB"),
             None => f.write_str("<none>"),
         }
     }
@@ -287,7 +287,7 @@ fn parse_optional_size(val: &str) -> Result<Option<u64>> {
     } else {
         Some(
             val.parse()
-                .with_context(|| format!("Failed to parse optional size \"{}\"", val))?,
+                .with_context(|| format!("Failed to parse optional size \"{val}\""))?,
         )
     })
 }
@@ -295,7 +295,7 @@ fn parse_optional_size(val: &str) -> Result<Option<u64>> {
 fn parse_swap_priority(val: &str) -> Result<i32> {
     let val = val
         .parse()
-        .with_context(|| format!("Failed to parse priority \"{}\"", val))?;
+        .with_context(|| format!("Failed to parse priority \"{val}\""))?;
 
     /* See --priority in swapon(8). */
     match val {
@@ -366,7 +366,7 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
             dev.zram_fraction = Some(
                 value
                     .parse()
-                    .with_context(|| format!("Failed to parse zram-fraction \"{}\"", value))
+                    .with_context(|| format!("Failed to parse zram-fraction \"{value}\""))
                     .and_then(|f| {
                         if f >= 0. {
                             Ok(f)

@@ -77,13 +77,7 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
                                                             this expect() will never panic, save for an stdlib bug"))),
             },
         Err(e) =>
-            Err(e).with_context(|| {
-                format!(
-                    "{} call failed for /dev/{}",
-                    SYSTEMD_MAKEFS_COMMAND,
-                    device_name
-                )
-            }),
+            Err(e).with_context(|| format!("{SYSTEMD_MAKEFS_COMMAND} call failed for /dev/{device_name}")),
     }
 }
 
