@@ -25,7 +25,7 @@ jobs:
           - nightly
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install linux-modules-extra-$(uname -r)
         run: |
           sudo apt update
@@ -33,11 +33,13 @@ jobs:
       - name: Insert zram module
         run: sudo modprobe -v zram
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust }}
-          override: true
-          profile: minimal
+        run: |
+          rm -f /home/runner/.cargo/bin/*fmt
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+      - name: Install toolchain
+        run: | 
+          rustup toolchain install ${{ matrix.rust }}
+          rustup default ${{ matrix.rust }}
       - name: Build
         run: make program CARGOFLAGS="--verbose"
       - name: Run tests
@@ -48,32 +50,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          profile: minimal
-          components: rustfmt
+        run: |
+          rm -f /home/runner/.cargo/bin/*fmt
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+      - name: Install toolchain
+        run: |
+          rustup toolchain install stable
+          rustup default stable
       - name: Check formatting
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: -- --check
+        run: cargo fmt -- --check
 
   clippy:
     name: clippy
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          override: true
-          profile: minimal
-          components: clippy
+        run: |
+          rm -f /home/runner/.cargo/bin/*fmt
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+      - name: Install toolchain
+        run: | 
+          rustup toolchain install nightly
+          rustup default nightly
       - name: Validate clippy
         run: make clippy CARGOFLAGS="-- -D warnings"
