@@ -9,13 +9,13 @@ authors = ["Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl>",
 license = "MIT"
 description = "Systemd unit generator for zram swap devices."
 homepage = "https://github.com/systemd/zram-generator"
-edition = "2018"
+edition = "2021"
 exclude = ["tests/07a-mount-point-excl", "tests/10-example"]
 
 [dependencies]
 anyhow = "1.0.12"
 clap = { version = "2.33", default-features = false }
-liboverdrop = "0.0.2"
+liboverdrop = "0.1.0"
 rust-ini = ">=0.15, <0.18"
 log = { version = "0.4", features = ["std"] }
 fasteval = { version = "0.2", default-features = false }
