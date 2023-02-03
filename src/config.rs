@@ -3,10 +3,10 @@
 use anyhow::{anyhow, Context, Result};
 use fasteval::Evaler;
 use ini::Ini;
-use liboverdrop::FragmentScanner;
 use log::{info, warn};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
+use std::ffi::OsString;
 use std::fmt;
 use std::fs;
 use std::io::{prelude::*, BufReader};
@@ -248,35 +248,29 @@ fn read_devices(
     Ok(devices)
 }
 
-fn locate_fragments(root: &Path) -> BTreeMap<String, PathBuf> {
-    let base_dirs = vec![
-        String::from(root.join("usr/lib").to_str().unwrap()),
-        String::from(root.join("usr/local/lib").to_str().unwrap()),
-        String::from(root.join("etc").to_str().unwrap()),
-        String::from(root.join("run").to_str().unwrap()), // We look at /run to allow temporary overriding
-                                                          // of configuration. There is no expectation of
-                                                          // programatic creation of config there.
+fn locate_fragments(root: &Path) -> BTreeMap<OsString, PathBuf> {
+    let base_dirs = [
+        root.join("usr/lib"),
+        root.join("usr/local/lib"),
+        root.join("etc"),
+        root.join("run"), // We look at /run to allow temporary overriding
+                          // of configuration. There is no expectation of
+                          // programatic creation of config there.
     ];
 
-    let cfg = FragmentScanner::new(
-        base_dirs.clone(),
-        "systemd/zram-generator.conf.d",
-        true,
-        vec![String::from("conf")],
-    );
+    let mut fragments =
+        liboverdrop::scan(&base_dirs, "systemd/zram-generator.conf.d", &["conf"], true);
 
-    let mut fragments = cfg.scan();
     if let Some(path) = base_dirs
         .into_iter()
         .rev()
-        .map(PathBuf::from)
         .map(|mut p| {
             p.push("systemd/zram-generator.conf");
             p
         })
         .find(|p| p.exists())
     {
-        fragments.insert(String::new(), path); // The empty string shall sort earliest
+        fragments.insert(OsString::new(), path); // The empty string shall sort earliest
     }
     fragments
 }
