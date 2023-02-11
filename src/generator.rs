@@ -140,7 +140,6 @@ fn parse_known_compressors(proc_crypto: &str) -> BTreeSet<&str> {
     // Extract algorithm names (this includes non-compression algorithms too)
     proc_crypto
         .lines()
-        .into_iter()
         .filter(|line| line.starts_with("name"))
         .map(|m| m.rsplit(':').next().unwrap().trim())
         .collect()
