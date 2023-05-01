@@ -35,6 +35,7 @@ jobs:
       - name: Install Rust
         run: |
           rm -f /home/runner/.cargo/bin/*fmt
+          rm -f /home/runner/.cargo/bin/rust-analyzer
           curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: Install toolchain
         run: | 
@@ -54,6 +55,7 @@ jobs:
       - name: Install Rust
         run: |
           rm -f /home/runner/.cargo/bin/*fmt
+          rm -f /home/runner/.cargo/bin/rust-analyzer
           curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: Install toolchain
         run: |
@@ -71,6 +73,7 @@ jobs:
       - name: Install Rust
         run: |
           rm -f /home/runner/.cargo/bin/*fmt
+          rm -f /home/runner/.cargo/bin/rust-analyzer
           curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: Install toolchain
         run: | 
