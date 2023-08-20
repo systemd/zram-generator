@@ -31,7 +31,9 @@ jobs:
         with:
           tools: linux-modules-extra-$(uname -r)
       - name: Insert zram module
-        run: sudo modprobe -v zram
+        run: |
+          sudo depmod
+          sudo modprobe -v zram
       - name: Install Rust
         run: |
           rm -f ~/.cargo/bin/*fmt ~/.cargo/bin/rust-analyzer
