@@ -27,9 +27,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Install linux-modules-extra-$(uname -r)
-        uses: tecolicom/actions-use-apt-tools@main
+        uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          tools: linux-modules-extra-$(uname -r)
+          packages: linux-modules-extra-$(uname -r)
       - name: Insert zram module
         run: |
           sudo depmod
