@@ -25,6 +25,10 @@ pub struct Device {
     pub writeback_dev: Option<PathBuf>,
     pub disksize: u64,
 
+    /// sets maximum zramX device limit (/sys/block/zramX/mem_limit option)
+    pub zram_resident_limit: Option<(String, fasteval::ExpressionI, fasteval::Slab)>,
+    pub mem_limit: u64,
+
     pub swap_priority: i32,
     /// when set, a mount unit will be created
     pub mount_point: Option<PathBuf>,
@@ -48,6 +52,8 @@ impl Device {
             compression_algorithm: None,
             writeback_dev: None,
             disksize: 0,
+            zram_resident_limit: None,
+            mem_limit: 0,
             swap_priority: 100,
             mount_point: None,
             fs_type: None,
@@ -119,19 +125,44 @@ impl Device {
 
         Ok(())
     }
+
+    fn set_mem_limit(&mut self, memtotal_mb: u64) -> Result<()> {
+        self.mem_limit = (match self.zram_resident_limit.as_ref() {
+            Some(zs) => {
+                zs.1.from(&zs.2.ps)
+                    .eval(&zs.2, &mut RamNs(memtotal_mb as f64))
+                    .with_context(|| format!("{} zram-resident-limit", self.name))
+                    .and_then(|f| {
+                        if f >= 0. {
+                            Ok(f)
+                        } else {
+                            Err(anyhow!("{}: zram-resident-limit={} < 0", self.name, f))
+                        }
+                    })?
+            }
+            None => 0.0,
+        } * 1024.
+            * 1024.) as u64;
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for Device {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}: host-memory-limit={} zram-size={} compression-algorithm={} writeback-device={} options={}",
+            "{}: host-memory-limit={} zram-size={} zram_resident_limit={} compression-algorithm={} writeback-device={} options={}",
             self.name,
             OptMB(self.host_memory_limit_mb),
             self.zram_size
                 .as_ref()
                 .map(|zs| &zs.0[..])
                 .unwrap_or(DEFAULT_ZRAM_SIZE),
+            self.zram_resident_limit
+                .as_ref()
+                .map(|zs| &zs.0[..])
+                .unwrap_or("0"),
             self.compression_algorithm.as_deref().unwrap_or("<default>"),
             self.writeback_dev.as_deref().unwrap_or_else(|| Path::new("<none>")).display(),
             self.options
@@ -242,6 +273,7 @@ fn read_devices(
     }
 
     for dev in devices.values_mut() {
+        dev.set_mem_limit(memtotal_mb)?;
         dev.set_disksize_if_enabled(memtotal_mb)?;
     }
 
@@ -326,6 +358,17 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
                 fasteval::Parser::new()
                     .parse_noclear(value, &mut sl.ps)
                     .with_context(|| format!("{} zram-size", dev.name))?,
+                sl,
+            ));
+        }
+
+        "zram-resident-limit" => {
+            let mut sl = fasteval::Slab::new();
+            dev.zram_resident_limit = Some((
+                value.to_string(),
+                fasteval::Parser::new()
+                    .parse_noclear(value, &mut sl.ps)
+                    .with_context(|| format!("{} zram-resident-limit", dev.name))?,
                 sl,
             ));
         }

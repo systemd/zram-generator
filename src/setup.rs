@@ -57,6 +57,14 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
         }
     }
 
+    let resident_memory = device_sysfs_path.join("mem_limit");
+    fs::write(&resident_memory, format!("{}", device.mem_limit)).with_context(|| {
+        format!(
+            "Failed to configure zram maximum resident memory limit into {}",
+            resident_memory.display()
+        )
+    })?;
+    
     let disksize_path = device_sysfs_path.join("disksize");
     fs::write(&disksize_path, format!("{}", device.disksize)).with_context(|| {
         format!(

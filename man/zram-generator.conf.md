@@ -62,6 +62,14 @@ Devices with the final size of *0* will be discarded.
 
   Defaults to *min(ram / 2, 4096)*.
 
+* `zram-resident-limit`=
+
+  Sets the maximum resident memory limit of the zram device as a function of *MemTotal*, available as the `ram` variable.
+
+  Arithmetic operators (^%/\*-+), e, π, SI suffixes, log(), int(), ceil(), floor(), round(), abs(), min(), max(), and trigonometric functions are supported.
+
+  Defaults to *0* meaning there is no limit, usefull to set when having zram device bigger than available RAM.
+
 * `compression-algorithm`=
 
   Specifies the algorithm used to compress the zram device.
