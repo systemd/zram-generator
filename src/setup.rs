@@ -64,7 +64,7 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
             resident_memory.display()
         )
     })?;
-    
+
     let disksize_path = device_sysfs_path.join("disksize");
     fs::write(&disksize_path, format!("{}", device.disksize)).with_context(|| {
         format!(
