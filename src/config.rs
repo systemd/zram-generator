@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 
-use anyhow::{anyhow, Context, Result, Error};
+use anyhow::{anyhow, Context, Error, Result};
 use fasteval::Evaler;
 use ini::Ini;
 use log::{info, warn};
@@ -93,10 +93,15 @@ impl Device {
         }
     }
 
-    fn process_size(&self, zram_option: &Option<(String, fasteval::ExpressionI,
-                  fasteval::Slab)>, memtotal_mb: f64, name: &str, default_size: f64,
-                  label: &str) -> Result<u64, Error> {
-        return Ok(( match zram_option {
+    fn process_size(
+        &self,
+        zram_option: &Option<(String, fasteval::ExpressionI, fasteval::Slab)>,
+        memtotal_mb: f64,
+        name: &str,
+        default_size: f64,
+        label: &str,
+    ) -> Result<u64, Error> {
+        return Ok((match zram_option {
             Some(zs) => {
                 zs.1.from(&zs.2.ps)
                     .eval(&zs.2, &mut RamNs(memtotal_mb))
@@ -110,7 +115,8 @@ impl Device {
                     })?
             }
             None => default_size,
-        } * 1024.0 * 1024.0) as u64);
+        } * 1024.0
+            * 1024.0) as u64);
     }
 
     fn set_disksize_if_enabled(&mut self, memtotal_mb: u64) -> Result<()> {
@@ -125,11 +131,20 @@ impl Device {
                 .min(max_mb)
                 * (1024 * 1024);
         } else {
-            self.disksize = self.process_size(&self.zram_size, memtotal_mb as f64, &self.name, 
-                                              (memtotal_mb as f64 / 2.).min(4096.), "zram-size")?;
-            self.mem_limit = self.process_size(&self.zram_resident_limit, 
-                                               memtotal_mb as f64, &self.name, 0.,
-                                               "zram-resident-limit")?;
+            self.disksize = self.process_size(
+                &self.zram_size,
+                memtotal_mb as f64,
+                &self.name,
+                (memtotal_mb as f64 / 2.).min(4096.),
+                "zram-size",
+            )?;
+            self.mem_limit = self.process_size(
+                &self.zram_resident_limit,
+                memtotal_mb as f64,
+                &self.name,
+                0.,
+                "zram-resident-limit",
+            )?;
         }
 
         Ok(())
