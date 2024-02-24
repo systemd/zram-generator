@@ -101,7 +101,7 @@ impl Device {
         default_size: f64,
         label: &str,
     ) -> Result<u64, Error> {
-        return Ok((match zram_option {
+        Ok((match zram_option {
             Some(zs) => {
                 zs.1.from(&zs.2.ps)
                     .eval(&zs.2, &mut RamNs(memtotal_mb))
@@ -116,7 +116,7 @@ impl Device {
             }
             None => default_size,
         } * 1024.0
-            * 1024.0) as u64);
+            * 1024.0) as u64)
     }
 
     fn set_disksize_if_enabled(&mut self, memtotal_mb: u64) -> Result<()> {
