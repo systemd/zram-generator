@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Context, Result, Error};
 use fasteval::Evaler;
 use ini::Ini;
 use log::{info, warn};
@@ -93,6 +93,26 @@ impl Device {
         }
     }
 
+    fn process_size(&self, zram_option: &Option<(String, fasteval::ExpressionI,
+                  fasteval::Slab)>, memtotal_mb: f64, name: &str, default_size: f64,
+                  label: &str) -> Result<u64, Error> {
+        return Ok(( match zram_option {
+            Some(zs) => {
+                zs.1.from(&zs.2.ps)
+                    .eval(&zs.2, &mut RamNs(memtotal_mb))
+                    .with_context(|| format!("{} {}", name, label))
+                    .and_then(|f| {
+                        if f >= 0. {
+                            Ok(f)
+                        } else {
+                            Err(anyhow!("{}: {}={} < 0", name, label, f))
+                        }
+                    })?
+            }
+            None => default_size,
+        } * 1024.0 * 1024.0) as u64);
+    }
+
     fn set_disksize_if_enabled(&mut self, memtotal_mb: u64) -> Result<()> {
         if !self.is_enabled(memtotal_mb) {
             return Ok(());
@@ -105,44 +125,12 @@ impl Device {
                 .min(max_mb)
                 * (1024 * 1024);
         } else {
-            self.disksize = (match self.zram_size.as_ref() {
-                Some(zs) => {
-                    zs.1.from(&zs.2.ps)
-                        .eval(&zs.2, &mut RamNs(memtotal_mb as f64))
-                        .with_context(|| format!("{} zram-size", self.name))
-                        .and_then(|f| {
-                            if f >= 0. {
-                                Ok(f)
-                            } else {
-                                Err(anyhow!("{}: zram-size={} < 0", self.name, f))
-                            }
-                        })?
-                }
-                None => (memtotal_mb as f64 / 2.).min(4096.), // DEFAULT_ZRAM_SIZE
-            } * 1024.
-                * 1024.) as u64;
+            self.disksize = self.process_size(&self.zram_size, memtotal_mb as f64, &self.name, 
+                                              (memtotal_mb as f64 / 2.).min(4096.), "zram-size")?;
+            self.mem_limit = self.process_size(&self.zram_resident_limit, 
+                                               memtotal_mb as f64, &self.name, 0.,
+                                               "zram-resident-limit")?;
         }
-
-        Ok(())
-    }
-
-    fn set_mem_limit(&mut self, memtotal_mb: u64) -> Result<()> {
-        self.mem_limit = (match self.zram_resident_limit.as_ref() {
-            Some(zs) => {
-                zs.1.from(&zs.2.ps)
-                    .eval(&zs.2, &mut RamNs(memtotal_mb as f64))
-                    .with_context(|| format!("{} zram-resident-limit", self.name))
-                    .and_then(|f| {
-                        if f >= 0. {
-                            Ok(f)
-                        } else {
-                            Err(anyhow!("{}: zram-resident-limit={} < 0", self.name, f))
-                        }
-                    })?
-            }
-            None => 0.0,
-        } * 1024.
-            * 1024.) as u64;
 
         Ok(())
     }
@@ -273,7 +261,6 @@ fn read_devices(
     }
 
     for dev in devices.values_mut() {
-        dev.set_mem_limit(memtotal_mb)?;
         dev.set_disksize_if_enabled(memtotal_mb)?;
     }
 

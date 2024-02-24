@@ -19,12 +19,12 @@ host-memory-limit = 9048
 # The default is "min(ram / 2, 4096)".
 zram-size = min(ram / 10, 2048)
 
-# The maximum size of resident memory of zram device, as function of 
-# MemTotal, both in MB. For example, if the machine has 1GiB, and 
-# zram-resident-limit=ram/8, then the resident space on RAM won't
-# exceed 64MiB. Recomended value is ram / 2.
+# The maximum memory resident for this zram device, as a function of MemTotal, 
+# both in MB. 
+# For example, if the machine has 1 GiB, and zram-resident-limit=ram/8,
+# then the resident space on RAM won't exceed 128 MiB.
 #
-# The default is "0"
+# The default is "0" (no limit).
 zram-resident-limit = 0
 
 # The compression algorithm to use for the zram device,
