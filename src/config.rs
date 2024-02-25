@@ -13,6 +13,7 @@ use std::io::{prelude::*, BufReader};
 use std::path::{Component, Path, PathBuf};
 
 const DEFAULT_ZRAM_SIZE: &str = "min(ram / 2, 4096)";
+const DEFAULT_RESIDENT_LIMIT: &str = "0";
 
 pub struct Device {
     pub name: String,
@@ -24,6 +25,10 @@ pub struct Device {
     pub compression_algorithm: Option<String>,
     pub writeback_dev: Option<PathBuf>,
     pub disksize: u64,
+
+    /// /sys/block/zramX/mem_limit; default: `DEFAULT_RESIDENT_LIMIT`
+    pub zram_resident_limit: Option<(String, fasteval::ExpressionI, fasteval::Slab)>,
+    pub mem_limit: u64,
 
     pub swap_priority: i32,
     /// when set, a mount unit will be created
@@ -48,6 +53,8 @@ impl Device {
             compression_algorithm: None,
             writeback_dev: None,
             disksize: 0,
+            zram_resident_limit: None,
+            mem_limit: 0,
             swap_priority: 100,
             mount_point: None,
             fs_type: None,
@@ -87,6 +94,31 @@ impl Device {
         }
     }
 
+    fn process_size(
+        &self,
+        zram_option: &Option<(String, fasteval::ExpressionI, fasteval::Slab)>,
+        memtotal_mb: f64,
+        default_size: f64,
+        label: &str,
+    ) -> Result<u64> {
+        Ok((match zram_option {
+            Some(zs) => {
+                zs.1.from(&zs.2.ps)
+                    .eval(&zs.2, &mut RamNs(memtotal_mb))
+                    .with_context(|| format!("{} {}", self.name, label))
+                    .and_then(|f| {
+                        if f >= 0. {
+                            Ok(f)
+                        } else {
+                            Err(anyhow!("{}: {}={} < 0", self.name, label, f))
+                        }
+                    })?
+            }
+            None => default_size,
+        } * 1024.0
+            * 1024.0) as u64)
+    }
+
     fn set_disksize_if_enabled(&mut self, memtotal_mb: u64) -> Result<()> {
         if !self.is_enabled(memtotal_mb) {
             return Ok(());
@@ -99,23 +131,20 @@ impl Device {
                 .min(max_mb)
                 * (1024 * 1024);
         } else {
-            self.disksize = (match self.zram_size.as_ref() {
-                Some(zs) => {
-                    zs.1.from(&zs.2.ps)
-                        .eval(&zs.2, &mut RamNs(memtotal_mb as f64))
-                        .with_context(|| format!("{} zram-size", self.name))
-                        .and_then(|f| {
-                            if f >= 0. {
-                                Ok(f)
-                            } else {
-                                Err(anyhow!("{}: zram-size={} < 0", self.name, f))
-                            }
-                        })?
-                }
-                None => (memtotal_mb as f64 / 2.).min(4096.), // DEFAULT_ZRAM_SIZE
-            } * 1024.
-                * 1024.) as u64;
+            self.disksize = self.process_size(
+                &self.zram_size,
+                memtotal_mb as f64,
+                (memtotal_mb as f64 / 2.).min(4096.), // DEFAULT_ZRAM_SIZE
+                "zram-size",
+            )?;
         }
+
+        self.mem_limit = self.process_size(
+            &self.zram_resident_limit,
+            memtotal_mb as f64,
+            0., // DEFAULT_RESIDENT_LIMIT
+            "zram-resident-limit",
+        )?;
 
         Ok(())
     }
@@ -125,13 +154,17 @@ impl fmt::Display for Device {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}: host-memory-limit={} zram-size={} compression-algorithm={} writeback-device={} options={}",
+            "{}: host-memory-limit={} zram-size={} zram-resident-limit={} compression-algorithm={} writeback-device={} options={}",
             self.name,
             OptMB(self.host_memory_limit_mb),
             self.zram_size
                 .as_ref()
                 .map(|zs| &zs.0[..])
                 .unwrap_or(DEFAULT_ZRAM_SIZE),
+            self.zram_resident_limit
+                .as_ref()
+                .map(|zs| &zs.0[..])
+                .unwrap_or(DEFAULT_RESIDENT_LIMIT),
             self.compression_algorithm.as_deref().unwrap_or("<default>"),
             self.writeback_dev.as_deref().unwrap_or_else(|| Path::new("<none>")).display(),
             self.options
@@ -312,6 +345,21 @@ fn verify_mount_point(key: &str, val: &str) -> Result<PathBuf> {
     Ok(path.components().collect()) // normalise away /./ components
 }
 
+fn parse_size_expr(
+    dev: &Device,
+    key: &str,
+    value: &str,
+) -> Result<(String, fasteval::ExpressionI, fasteval::Slab)> {
+    let mut sl = fasteval::Slab::new();
+    Ok((
+        value.to_string(),
+        fasteval::Parser::new()
+            .parse_noclear(value, &mut sl.ps)
+            .with_context(|| format!("{} {}", key, dev.name))?,
+        sl,
+    ))
+}
+
 fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
     match key {
         "host-memory-limit" | "memory-limit" => {
@@ -320,14 +368,11 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
         }
 
         "zram-size" => {
-            let mut sl = fasteval::Slab::new();
-            dev.zram_size = Some((
-                value.to_string(),
-                fasteval::Parser::new()
-                    .parse_noclear(value, &mut sl.ps)
-                    .with_context(|| format!("{} zram-size", dev.name))?,
-                sl,
-            ));
+            dev.zram_size = Some(parse_size_expr(dev, key, value)?);
+        }
+
+        "zram-resident-limit" => {
+            dev.zram_resident_limit = Some(parse_size_expr(dev, key, value)?);
         }
 
         "compression-algorithm" => {
