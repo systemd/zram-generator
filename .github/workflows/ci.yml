@@ -44,6 +44,10 @@ jobs:
           rustup default ${{ matrix.rust }}
       - name: Build
         run: make program CARGOFLAGS="--verbose"
+      - name: Insert zstd module
+        run: |
+          sudo depmod
+          sudo modprobe -v zstd
       - name: Run tests
         run: make check CARGOFLAGS="--verbose"
 
