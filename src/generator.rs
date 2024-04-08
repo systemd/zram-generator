@@ -323,6 +323,7 @@ Options={options}
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[allow(unused_imports)]
     use std::iter::FromIterator;
 
     #[test]
