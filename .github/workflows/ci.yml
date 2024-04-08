@@ -33,7 +33,8 @@ jobs:
       - name: Insert required modules
         run: |
           sudo depmod
-          sudo modprobe -v zram zstd
+          sudo modprobe -v zram
+          sudo modprobe -v zstd
       - name: Install Rust
         run: |
           rm -f ~/.cargo/bin/*fmt ~/.cargo/bin/rust-analyzer
