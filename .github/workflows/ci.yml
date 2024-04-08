@@ -36,7 +36,7 @@ jobs:
           sudo modprobe -v zram
       - name: Install Rust
         run: |
-          rm -f ~/.cargo/bin/*fmt ~/.cargo/bin/rust-analyzer
+          rm -f ~/.cargo/bin/*
           curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: Install toolchain
         run: | 
@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Install Rust
         run: |
-          rm -f ~/.cargo/bin/*fmt ~/.cargo/bin/rust-analyzer
+          rm -f ~/.cargo/bin/*
           curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: Install toolchain
         run: |
@@ -72,7 +72,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Install Rust
         run: |
-          rm -f ~/.cargo/bin/*fmt ~/.cargo/bin/rust-analyzer
+          rm -f ~/.cargo/bin/*
           curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: Install toolchain
         run: | 
