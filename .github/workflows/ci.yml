@@ -30,10 +30,10 @@ jobs:
         uses: tecolicom/actions-use-apt-tools@main
         with:
           tools: linux-modules-extra-$(uname -r)
-      - name: Insert zram module
+      - name: Insert required modules
         run: |
           sudo depmod
-          sudo modprobe -v zram
+          sudo modprobe -v zram zstd
       - name: Install Rust
         run: |
           rm -f ~/.cargo/bin/*fmt ~/.cargo/bin/rust-analyzer
@@ -44,10 +44,6 @@ jobs:
           rustup default ${{ matrix.rust }}
       - name: Build
         run: make program CARGOFLAGS="--verbose"
-      - name: Insert zstd module
-        run: |
-          sudo depmod
-          sudo modprobe -v zstd
       - name: Run tests
         run: make check CARGOFLAGS="--verbose"
 
