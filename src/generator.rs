@@ -117,7 +117,13 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
 
     let compressors: BTreeSet<_> = devices
         .iter()
-        .flat_map(|device| device.compression_algorithm.as_deref())
+        .flat_map(|device| {
+            device
+                .compression_algorithms
+                .compression_algorithms
+                .iter()
+                .map(|(a, _)| a.as_ref())
+        })
         .collect();
 
     if !compressors.is_empty() {

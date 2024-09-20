@@ -24,20 +24,71 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
 
     let device_sysfs_path = Path::new("/sys/block").join(device_name);
 
-    if let Some(ref compression_algorithm) = device.compression_algorithm {
-        let comp_algorithm_path = device_sysfs_path.join("comp_algorithm");
-        match fs::write(&comp_algorithm_path, compression_algorithm) {
-            Ok(_) => {}
+    for (prio, (algo, params)) in device
+        .compression_algorithms
+        .compression_algorithms
+        .iter()
+        .enumerate()
+    {
+        let params = if params.is_empty() {
+            None
+        } else {
+            Some(params)
+        };
+        let (path, data, add_pathdata) = if prio == 0 {
+            (
+                device_sysfs_path.join("comp_algorithm"),
+                algo,
+                params.as_ref().map(|p| {
+                    (
+                        device_sysfs_path.join("algorithm_params"),
+                        format!("algo={} {}", algo, p),
+                    )
+                }),
+            )
+        } else {
+            (
+                device_sysfs_path.join("recomp_algorithm"),
+                &format!("algo={} priority={}", algo, prio),
+                params.as_ref().map(|p| {
+                    (
+                        device_sysfs_path.join("recompress"),
+                        format!("{} priority={}", p, prio),
+                    )
+                }),
+            )
+        };
+
+        match fs::write(&path, data) {
+            Ok(_) => {
+                if let Some((add_path, add_data)) = add_pathdata {
+                    match fs::write(add_path, add_data) {
+                        Ok(_) => {}
+                        Err(err) => {
+                            warn!(
+                                "Warning: algorithm {:?} supplemental data {:?} not written: {}",
+                                algo, data, err,
+                            );
+                        }
+                    }
+                }
+            }
             Err(err) if err.kind() == ErrorKind::InvalidInput => {
                 warn!(
                     "Warning: algorithm {:?} not recognised; consult {} for a list of available ones",
-                    compression_algorithm, comp_algorithm_path.display(),
+                    algo, path.display(),
+                );
+            }
+            Err(err) if err.kind() == ErrorKind::PermissionDenied && prio != 0 => {
+                warn!(
+                    "Warning: recompression algorithm {:?} requested but recompression not available ({} doesn't exist)",
+                    algo, path.display(),
                 );
             }
             err @ Err(_) => err.with_context(|| {
                 format!(
                     "Failed to configure compression algorithm into {}",
-                    comp_algorithm_path.display()
+                    path.display()
                 )
             })?,
         }

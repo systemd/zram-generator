@@ -72,10 +72,14 @@ Devices with the final size of *0* will be discarded.
 
   Specifies the algorithm used to compress the zram device.
 
-  This takes a literal string, representing the algorithm to use.<br />
-  Consult */sys/block/zram0/comp_algorithm* for a list of currently loaded compression algorithms, but note that additional ones may be loaded on demand.
+  This takes a whitespace-separated list string, representing the algorithms to use, and parameters in parenteses.<br />
+  Consult */sys/block/zram0/comp_algorithm* (and *.../recomp_algorithm*) for a list of currently loaded compression algorithms, but note that additional ones may be loaded on demand.
 
-  If unset, none will be configured and the kernel's default will be used.
+  If unset, none will be configured and the kernel's default will be used.<br />
+  If more than one is given, and recompression is enabled in the kernel, subsequent ones will be set as the recompression algorithms, with decreasing priority.
+
+  If a compression algorithm is suffixed with a parenthesised comma-separated list of parameters, those are given to `.../algorithm_params` (and `.../recompress`).
+  A parenthesised parameter list *without* a compression algorithm is set as the global recompression parameters.
 
 * `writeback-device`=
 

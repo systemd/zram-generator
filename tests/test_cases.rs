@@ -124,7 +124,13 @@ fn test_02_zstd() {
     assert!(d.is_swap());
     assert_eq!(d.host_memory_limit_mb, Some(2050));
     assert_eq!(d.zram_size.as_ref().map(z_s_name), Some("ram * 0.75"));
-    assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
+    assert_eq!(
+        d.compression_algorithms,
+        config::Algorithms {
+            compression_algorithms: vec![("zstd".into(), "".into())],
+            ..Default::default()
+        }
+    );
     assert_eq!(d.options, "discard");
 }
 
@@ -259,7 +265,13 @@ fn test_09_zram_size() {
         d.zram_size.as_ref().map(z_s_name),
         Some("min(0.75 * ram, 6000)")
     );
-    assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
+    assert_eq!(
+        d.compression_algorithms,
+        config::Algorithms {
+            compression_algorithms: vec![("zstd".into(), "dictionary=/etc/gaming level=9".into())],
+            recompression_global: "recompargs".into()
+        }
+    );
 }
 
 #[test]
@@ -283,7 +295,16 @@ fn test_10_example() {
                     d.zram_size.as_ref().map(z_s_name),
                     Some("min(ram / 10, 2048)")
                 );
-                assert_eq!(d.compression_algorithm.as_deref(), Some("lzo-rle"));
+                assert_eq!(
+                    d.compression_algorithms,
+                    config::Algorithms {
+                        compression_algorithms: vec![
+                            ("lzo-rle".into(), "".into()),
+                            ("zstd".into(), "level=3".into())
+                        ],
+                        recompression_global: "type=idle".into(),
+                    }
+                );
                 assert_eq!(d.options, "");
             }
             "zram1" => {

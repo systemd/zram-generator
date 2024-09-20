@@ -29,7 +29,13 @@ zram-resident-limit = 0
 
 # The compression algorithm to use for the zram device,
 # or leave unspecified to keep the kernel default.
-compression-algorithm = lzo-rle
+#
+# Subsequent algorithms are used for recompression.
+# Comma-separated parameters may be specified in parentheses.
+#
+# Parameters without a compression algorithm are set as
+# global recompression parameters.
+compression-algorithm = lzo-rle zstd(level=3) (type=idle)
 
 # By default, file systems and swap areas are trimmed on-the-go
 # by setting "discard".

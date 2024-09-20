@@ -22,7 +22,7 @@ pub struct Device {
 
     /// Default: `DEFAULT_ZRAM_SIZE`
     pub zram_size: Option<(String, fasteval::ExpressionI, fasteval::Slab)>,
-    pub compression_algorithm: Option<String>,
+    pub compression_algorithms: Algorithms,
     pub writeback_dev: Option<PathBuf>,
     pub disksize: u64,
 
@@ -50,7 +50,7 @@ impl Device {
             name,
             host_memory_limit_mb: None,
             zram_size: None,
-            compression_algorithm: None,
+            compression_algorithms: Default::default(),
             writeback_dev: None,
             disksize: 0,
             zram_resident_limit: None,
@@ -165,7 +165,7 @@ impl fmt::Display for Device {
                 .as_ref()
                 .map(|zs| &zs.0[..])
                 .unwrap_or(DEFAULT_RESIDENT_LIMIT),
-            self.compression_algorithm.as_deref().unwrap_or("<default>"),
+            self.compression_algorithms,
             self.writeback_dev.as_deref().unwrap_or_else(|| Path::new("<none>")).display(),
             self.options
         )?;
@@ -193,6 +193,35 @@ impl fmt::Display for OptMB {
             Some(val) => write!(f, "{}MB", val),
             None => f.write_str("<none>"),
         }
+    }
+}
+
+#[derive(Default, Debug, PartialEq, Eq)]
+pub struct Algorithms {
+    pub compression_algorithms: Vec<(String, String)>, // algorithm, params; first one is real compression, later ones are recompression
+    pub recompression_global: String,                  // params
+}
+impl fmt::Display for Algorithms {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.compression_algorithms[..] {
+            [] => f.write_str("<default>")?,
+            [(first, firstparams), more @ ..] => {
+                f.write_str(first)?;
+                if !firstparams.is_empty() {
+                    write!(f, " ({})", firstparams)?;
+                }
+                for (algo, params) in more {
+                    write!(f, " then {}", algo)?;
+                    if !params.is_empty() {
+                        write!(f, " ({})", params)?;
+                    }
+                }
+            }
+        }
+        if !self.recompression_global.is_empty() {
+            write!(f, "(global recompress: {})", self.recompression_global)?;
+        }
+        Ok(())
     }
 }
 
@@ -360,6 +389,19 @@ fn parse_size_expr(
     ))
 }
 
+fn parse_compression_algorithm_params(whole: &str) -> (String, String) {
+    if let Some(paren) = whole.find('(') {
+        let (algo, mut params) = whole.split_at(paren);
+        params = &params[1..];
+        if params.ends_with(')') {
+            params = &params[..params.len() - 1];
+        }
+        (algo.to_string(), params.replace(',', " "))
+    } else {
+        (whole.to_string(), String::new())
+    }
+}
+
 fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
     match key {
         "host-memory-limit" | "memory-limit" => {
@@ -376,7 +418,18 @@ fn parse_line(dev: &mut Device, key: &str, value: &str) -> Result<()> {
         }
 
         "compression-algorithm" => {
-            dev.compression_algorithm = Some(value.to_string());
+            dev.compression_algorithms =
+                value
+                    .split_whitespace()
+                    .fold(Default::default(), |mut algos, s| {
+                        let (algo, params) = parse_compression_algorithm_params(s);
+                        if algo.is_empty() {
+                            algos.recompression_global = params;
+                        } else {
+                            algos.compression_algorithms.push((algo, params));
+                        }
+                        algos
+                    });
         }
 
         "writeback-device" => {
