@@ -584,6 +584,30 @@ foo=0
     }
 
     #[test]
+    fn test_eval_size_expression_500() {
+        assert_eq!(
+            dev_with_zram_size_size(Some("500"), 5000),
+            500 * 1024 * 1024
+        );
+    }
+
+    #[test]
+    fn test_eval_size_expression_500k() {
+        assert_eq!(
+            dev_with_zram_size_size(Some("500k"), 5000),
+            500 * 1000 * 1024 * 1024
+        );
+    }
+
+    #[test]
+    fn test_eval_size_expression_32g() {
+        assert_eq!(
+            dev_with_zram_size_size(Some("32G"), 5000),
+            32 * 1000_000_000 * 1024 * 1024
+        );
+    }
+
+    #[test]
     fn test_eval_size_expression_default() {
         assert_eq!(dev_with_zram_size_size(None, 100), 50 * 1024 * 1024);
         assert_eq!(dev_with_zram_size_size(None, 10000), 4096 * 1024 * 1024);
