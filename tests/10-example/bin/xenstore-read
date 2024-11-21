@@ -1,2 +1,2 @@
 #!/bin/sh -x
-echo 2
+echo '8 * 1024'  # MB

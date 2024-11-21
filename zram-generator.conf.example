@@ -31,7 +31,7 @@ zram-size = min(ram / 10, 2048)
 # then this device will not consume more than 128 MiB.
 #
 # 0 means no limit; this is the default.
-zram-resident-limit = 0
+zram-resident-limit = maxhotplug * 3/4
 
 # The compression algorithm to use for the zram device,
 # or leave unspecified to keep the kernel default.
