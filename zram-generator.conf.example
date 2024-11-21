@@ -1,6 +1,12 @@
 # This file is part of the zram-generator project
 # https://github.com/systemd/zram-generator
 
+# At the top level, a set!variable = program
+# directive executes /bin/sh -c program,
+# parses the output as an expression, and remembers it in variable,
+# usable in later set! and zram-size/zram-resident-limit.
+set!maxhotplug = xenstore-read /local/domain/$(xenstore-read domid)/memory/hotplug-max
+
 [zram0]
 # This section describes the settings for /dev/zram0.
 #

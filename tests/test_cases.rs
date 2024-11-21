@@ -4,8 +4,11 @@ use zram_generator::{config, generator};
 
 use anyhow::Result;
 use fs_extra::dir::{copy, CopyOptions};
+use std::env;
+use std::ffi::OsString;
 use std::fs;
 use std::io::{self, Write};
+use std::os::unix::ffi::OsStringExt;
 use std::path::Path;
 use std::process::{exit, Command};
 use tempfile::TempDir;
@@ -43,6 +46,15 @@ fn unshorn() {
         .unwrap();
     fs::create_dir("/proc/self").unwrap();
     symlink("zram-generator", "/proc/self/exe").unwrap();
+
+    let mut path = env::var_os("PATH")
+        .map(|p| p.to_os_string().into_vec())
+        .unwrap_or(b"/usr/bin:/bin".to_vec()); // _PATH_DEFPATH
+    path.insert(0, b':');
+    for &b in "tests/10-example/bin".as_bytes().into_iter().rev() {
+        path.insert(0, b);
+    }
+    env::set_var("PATH", OsString::from_vec(path));
 }
 
 fn prepare_directory(srcroot: &Path) -> Result<TempDir> {
@@ -123,7 +135,8 @@ fn test_02_zstd() {
     let d = &devices[0];
     assert!(d.is_swap());
     assert_eq!(d.host_memory_limit_mb, Some(2050));
-    assert_eq!(d.zram_size.as_ref().map(z_s_name), Some("ram * 0.75"));
+    assert_eq!(d.zram_size.as_ref().map(z_s_name), Some("ram * ratio"));
+    assert_eq!(d.disksize, 614989824);
     assert_eq!(d.compression_algorithm.as_ref().unwrap(), "zstd");
     assert_eq!(d.options, "discard");
 }
