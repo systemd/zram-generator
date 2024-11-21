@@ -226,8 +226,12 @@ fn handle_zram_swap(output_directory: &Path, device: &Device) -> Result<()> {
 [Unit]
 Description=Compressed Swap on /dev/{zram_device}
 Documentation=man:zram-generator(8) man:zram-generator.conf(5)
+
+DefaultDependencies=no
+
 Requires=systemd-zram-setup@{zram_device}.service
 After=systemd-zram-setup@{zram_device}.service
+Before=swap.target
 
 [Swap]
 What=/dev/{zram_device}
