@@ -34,8 +34,8 @@ program:
 systemd-service:
 	$(call require_env,SYSTEMD_SYSTEM_GENERATOR_DIR)
 	sed -e 's,@SYSTEMD_SYSTEM_GENERATOR_DIR@,$(SYSTEMD_SYSTEM_GENERATOR_DIR),' \
-		< units/systemd-zram-setup@.service.in \
-		> units/systemd-zram-setup@.service
+		<units/systemd-zram-setup@.service.in \
+		>units/systemd-zram-setup@.service
 
 man:
 	$(RONN) --organization="zram-generator developers" man/*.md
