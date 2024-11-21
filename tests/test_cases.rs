@@ -4,8 +4,11 @@ use zram_generator::{config, generator};
 
 use anyhow::Result;
 use fs_extra::dir::{copy, CopyOptions};
+use std::env;
+use std::ffi::OsString;
 use std::fs;
 use std::io::{self, Write};
+use std::os::unix::ffi::OsStringExt;
 use std::path::Path;
 use std::process::{exit, Command};
 use tempfile::TempDir;
@@ -43,6 +46,15 @@ fn unshorn() {
         .unwrap();
     fs::create_dir("/proc/self").unwrap();
     symlink("zram-generator", "/proc/self/exe").unwrap();
+
+    let mut path = env::var_os("PATH")
+        .map(|p| p.to_os_string().into_vec())
+        .unwrap_or(b"/usr/bin:/bin".to_vec()); // _PATH_DEFPATH
+    path.insert(0, b':');
+    for &b in "tests/10-example/bin".as_bytes().into_iter().rev() {
+        path.insert(0, b);
+    }
+    env::set_var("PATH", OsString::from_vec(path));
 }
 
 fn prepare_directory(srcroot: &Path) -> Result<TempDir> {
@@ -114,6 +126,9 @@ fn test_01_basic() {
     assert_eq!(d.host_memory_limit_mb, None);
     assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
     assert_eq!(d.options, "discard");
+
+    assert_eq!(d.disksize, 391 * 1024 * 1024);
+    assert_eq!(d.mem_limit, 0);
 }
 
 #[test]
@@ -123,7 +138,7 @@ fn test_02_zstd() {
     let d = &devices[0];
     assert!(d.is_swap());
     assert_eq!(d.host_memory_limit_mb, Some(2050));
-    assert_eq!(d.zram_size.as_ref().map(z_s_name), Some("ram * 0.75"));
+    assert_eq!(d.zram_size.as_ref().map(z_s_name), Some("ram * ratio"));
     assert_eq!(
         d.compression_algorithms,
         config::Algorithms {
@@ -132,6 +147,9 @@ fn test_02_zstd() {
         }
     );
     assert_eq!(d.options, "discard");
+
+    assert_eq!(d.disksize, 782 * 1024 * 1024 * 3 / 4);
+    assert_eq!(d.mem_limit, 9999 * 1024 * 1024);
 }
 
 #[test]
@@ -153,11 +171,17 @@ fn test_04_dropins() {
                 assert_eq!(d.host_memory_limit_mb, Some(1235));
                 assert_eq!(d.zram_size.as_ref().map(z_s_name), None);
                 assert_eq!(d.options, "discard");
+
+                assert_eq!(d.disksize, 782 * 1024 * 1024 / 2);
+                assert_eq!(d.mem_limit, 0);
             }
             "zram2" => {
                 assert_eq!(d.host_memory_limit_mb, None);
                 assert_eq!(d.zram_size.as_ref().map(z_s_name), Some("ram*0.8"));
                 assert_eq!(d.options, "");
+
+                assert_eq!(d.disksize, 782 * 1024 * 1024 * 8 / 10);
+                assert_eq!(d.mem_limit, 0);
             }
             _ => panic!("Unexpected device {}", d),
         }
@@ -306,12 +330,26 @@ fn test_10_example() {
                     }
                 );
                 assert_eq!(d.options, "");
+
+                assert_eq!(
+                    d.zram_resident_limit.as_ref().map(z_s_name),
+                    Some("maxhotplug * 3/4")
+                );
+
+                assert_eq!(d.disksize, 782 * 1024 * 1024 / 10);
+                // This is the combination of tests/10-example/bin/xenstore-read and
+                // zram-resident-limit= in tests/10-example/etc/systemd/zram-generator.conf.
+                assert_eq!(d.mem_limit, 8 * 1024 * 1024 * 1024 * 3 / 4);
             }
+
             "zram1" => {
                 assert_eq!(d.fs_type.as_ref().unwrap(), "ext2");
                 assert_eq!(d.effective_fs_type(), "ext2");
                 assert_eq!(d.zram_size.as_ref().map(z_s_name), Some("ram / 10"));
                 assert_eq!(d.options, "discard");
+
+                assert_eq!(d.disksize, 782 * 1024 * 1024 / 10);
+                assert_eq!(d.mem_limit, 0);
             }
             _ => panic!("Unexpected device {}", d),
         }
