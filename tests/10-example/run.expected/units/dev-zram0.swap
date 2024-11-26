@@ -9,6 +9,7 @@ DefaultDependencies=no
 Requires=systemd-zram-setup@zram0.service
 After=systemd-zram-setup@zram0.service
 Before=swap.target
+Conflicts=shutdown.target
 
 [Swap]
 What=/dev/zram0
