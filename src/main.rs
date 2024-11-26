@@ -6,7 +6,6 @@ mod kernlog;
 mod setup;
 
 use anyhow::Result;
-use clap::{crate_description, crate_name, crate_version, App, Arg};
 use log::{info, LevelFilter};
 use std::borrow::Cow;
 use std::env;
@@ -22,38 +21,40 @@ enum Opts {
     ResetDevice(String),
 }
 
-fn get_opts() -> Opts {
-    let opts = App::new(crate_name!())
-        .version(crate_version!())
-        .about(crate_description!())
-        .arg(
-            Arg::from_usage("--setup-device 'Set up a single device'")
-                .conflicts_with("reset-device"),
-        )
-        .arg(Arg::from_usage("--reset-device 'Reset (destroy) a device'"))
-        .arg(Arg::from_usage(
-            "<directory|device> 'Target directory for generator or device to operate on'",
-        ))
-        .arg(
-            Arg::from_usage(
-                "[extra-dir] 'Unused target directories to satisfy systemd.generator(5)'",
-            )
-            .number_of_values(2)
-            .conflicts_with_all(&["setup-device", "reset-device"]),
-        )
-        .after_help(&*format!("Uses {}.", setup::SYSTEMD_MAKEFS_COMMAND))
-        .get_matches();
+#[rustfmt::skip]
+fn usage() -> ! {
+    eprintln!(
+        "Usage:\t{0} dir1 [dir2 [dir3]]     # Generate systemd units\n\
+               \t{0} --setup-device device  # Set up a single device\n\
+               \t{0} --reset-device device  # Reset (destroy) a device",
+        env::args().next().as_deref().unwrap_or("zram-generator")
+    );
+    eprintln!();
+    eprintln!("Uses {}.", setup::SYSTEMD_MAKEFS_COMMAND);
+    std::process::exit(1);
+}
 
-    let val = opts
-        .value_of("directory|device")
-        .expect("clap invariant")
-        .to_string();
-    if opts.is_present("setup-device") {
-        Opts::SetupDevice(val)
-    } else if opts.is_present("reset-device") {
-        Opts::ResetDevice(val)
-    } else {
-        Opts::GenerateUnits(val)
+fn get_opts() -> Opts {
+    let mut opts = getopts::Options::new();
+    opts.optopt("", "setup-device", "", "device");
+    opts.optopt("", "reset-device", "", "device");
+
+    let mut ret = match opts.parse(env::args_os().skip(1)) {
+        Ok(ret) => ret,
+        Err(err) => {
+            eprintln!("{}", err);
+            usage()
+        }
+    };
+    match (
+        ret.opt_str("setup-device"),
+        ret.opt_str("reset-device"),
+        ret.free.len(),
+    ) {
+        (None, None, 1..=3) => Opts::GenerateUnits(ret.free.swap_remove(0)),
+        (Some(setup), None, 0) => Opts::SetupDevice(setup),
+        (None, Some(reset), 0) => Opts::ResetDevice(reset),
+        _ => usage(),
     }
 }
 
