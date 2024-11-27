@@ -24,6 +24,11 @@ enum Opts {
 #[rustfmt::skip]
 fn command() -> clap::Command {
     clap::command!()
+        .override_usage("\
+            \tzram-generator --setup-device <device>\n\
+            \tzram-generator --reset-device <device>\n\
+            \tzram-generator dir1 [dir2 dir3]\
+        ")
         .arg(
             clap::arg!(--"setup-device" <device> "Set up a single device")
                 .conflicts_with("reset-device")
