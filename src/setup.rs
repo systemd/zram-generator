@@ -18,6 +18,11 @@ pub const SYSTEMD_MAKEFS_COMMAND: &str = concat!(
     ),
     "/systemd-makefs"
 );
+/// A constant string for use in clap --help output.
+#[rustfmt::skip]
+pub const AFTER_HELP: &str = concat!(
+    "Uses ", env!("SYSTEMD_UTIL_DIR"), "/systemd-makefs", "."
+);
 
 pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()> {
     let device = device.ok_or_else(|| anyhow!("Device {} not found", device_name))?;
