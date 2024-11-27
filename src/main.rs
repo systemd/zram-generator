@@ -6,7 +6,6 @@ mod kernlog;
 mod setup;
 
 use anyhow::Result;
-use clap::{crate_description, crate_name, crate_version, App, Arg};
 use log::{info, LevelFilter};
 use std::borrow::Cow;
 use std::env;
@@ -22,38 +21,36 @@ enum Opts {
     ResetDevice(String),
 }
 
-fn get_opts() -> Opts {
-    let opts = App::new(crate_name!())
-        .version(crate_version!())
-        .about(crate_description!())
+#[rustfmt::skip]
+fn command() -> clap::Command {
+    clap::command!()
         .arg(
-            Arg::from_usage("--setup-device 'Set up a single device'")
-                .conflicts_with("reset-device"),
+            clap::arg!(--"setup-device" <device> "Set up a single device")
+                .conflicts_with("reset-device")
         )
-        .arg(Arg::from_usage("--reset-device 'Reset (destroy) a device'"))
-        .arg(Arg::from_usage(
-            "<directory|device> 'Target directory for generator or device to operate on'",
-        ))
         .arg(
-            Arg::from_usage(
-                "[extra-dir] 'Unused target directories to satisfy systemd.generator(5)'",
-            )
-            .number_of_values(2)
-            .conflicts_with_all(&["setup-device", "reset-device"]),
+            clap::arg!(--"reset-device" <device> "Reset (destroy) a device")
         )
-        .after_help(&*format!("Uses {}.", setup::SYSTEMD_MAKEFS_COMMAND))
-        .get_matches();
+        .arg(
+            clap::arg!([dir] "Target directory to write output to and two optional\n\
+                              unused directories to satisfy systemd.generator(5)")
+                .num_args(1..=3)
+                .conflicts_with_all(["setup-device", "reset-device"])
+                .required_unless_present_any(["setup-device", "reset-device"])
+        )
+        .after_help(setup::AFTER_HELP)
+}
 
-    let val = opts
-        .value_of("directory|device")
-        .expect("clap invariant")
-        .to_string();
-    if opts.is_present("setup-device") {
-        Opts::SetupDevice(val)
-    } else if opts.is_present("reset-device") {
-        Opts::ResetDevice(val)
+fn get_opts() -> Opts {
+    let opts = command().get_matches();
+
+    if let Some(val) = opts.get_one::<&str>("setup-device") {
+        Opts::SetupDevice(val.to_string())
+    } else if let Some(val) = opts.get_one::<&str>("reset-device") {
+        Opts::ResetDevice(val.to_string())
     } else {
-        Opts::GenerateUnits(val)
+        let val = opts.get_one::<&str>("dir").expect("clap invariant");
+        Opts::GenerateUnits(val.to_string())
     }
 }
 
@@ -89,5 +86,43 @@ fn main() -> Result<()> {
             // even after the config has been removed.
             setup::run_device_reset(&dev)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn verify_app() {
+        command().debug_assert();
+    }
+
+    #[test]
+    fn parse_setup_device() {
+        let m = command().get_matches_from(vec!["prog", "--setup-device", "/dev/zram1"]);
+        assert_eq!(m.get_one::<String>("setup-device").unwrap(), "/dev/zram1");
+    }
+
+    #[test]
+    fn parse_reset_device() {
+        let m = command().get_matches_from(vec!["prog", "--reset-device", "/dev/zram1"]);
+        assert_eq!(m.get_one::<String>("reset-device").unwrap(), "/dev/zram1");
+    }
+
+    #[test]
+    fn parse_with_dir() {
+        let m = command().get_matches_from(vec!["prog", "/dir1"]);
+        assert!(m.get_one::<String>("setup-device").is_none());
+        assert!(m.get_one::<String>("reset-device").is_none());
+        assert_eq!(m.get_one::<String>("dir").unwrap(), "/dir1");
+    }
+
+    #[test]
+    fn parse_with_dirs() {
+        let m = command().get_matches_from(vec!["prog", "/dir1", "/dir2", "/dir3"]);
+        assert!(m.get_one::<String>("setup-device").is_none());
+        assert!(m.get_one::<String>("reset-device").is_none());
+        assert_eq!(m.get_one::<String>("dir").unwrap(), "/dir1");
     }
 }
