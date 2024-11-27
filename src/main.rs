@@ -6,7 +6,6 @@ mod kernlog;
 mod setup;
 
 use anyhow::Result;
-use indoc::indoc;
 use log::{info, LevelFilter};
 use std::borrow::Cow;
 use std::env;
@@ -25,11 +24,11 @@ enum Opts {
 #[rustfmt::skip]
 fn command() -> clap::Command {
     clap::command!()
-        .override_usage(indoc! {"
-            zram-generator --setup-device <device>
-                   zram-generator --reset-device <device>
-                   zram-generator dir1 [dir2 dir3]
-        "})
+        .override_usage("\
+            \tzram-generator --setup-device <device>\n\
+            \tzram-generator --reset-device <device>\n\
+            \tzram-generator dir1 [dir2 dir3]\
+        ")
         .arg(
             clap::arg!(--"setup-device" <device> "Set up a single device")
                 .conflicts_with("reset-device")
@@ -50,13 +49,13 @@ fn command() -> clap::Command {
 fn get_opts() -> Opts {
     let opts = command().get_matches();
 
-    if let Some(val) = opts.get_one::<String>("setup-device") {
-        Opts::SetupDevice(val.clone())
-    } else if let Some(val) = opts.get_one::<String>("reset-device") {
-        Opts::ResetDevice(val.clone())
+    if let Some(val) = opts.get_one::<&str>("setup-device") {
+        Opts::SetupDevice(val.to_string())
+    } else if let Some(val) = opts.get_one::<&str>("reset-device") {
+        Opts::ResetDevice(val.to_string())
     } else {
-        let val = opts.get_one::<String>("dir").expect("clap invariant");
-        Opts::GenerateUnits(val.clone())
+        let val = opts.get_one::<&str>("dir").expect("clap invariant");
+        Opts::GenerateUnits(val.to_string())
     }
 }
 
