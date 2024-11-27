@@ -6,6 +6,7 @@ mod kernlog;
 mod setup;
 
 use anyhow::Result;
+use indoc::indoc;
 use log::{info, LevelFilter};
 use std::borrow::Cow;
 use std::env;
@@ -24,6 +25,11 @@ enum Opts {
 #[rustfmt::skip]
 fn command() -> clap::Command {
     clap::command!()
+        .override_usage(indoc! {"
+            zram-generator --setup-device <device>
+                   zram-generator --reset-device <device>
+                   zram-generator dir1 [dir2 dir3]
+        "})
         .arg(
             clap::arg!(--"setup-device" <device> "Set up a single device")
                 .conflicts_with("reset-device")
