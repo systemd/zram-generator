@@ -49,13 +49,13 @@ fn command() -> clap::Command {
 fn get_opts() -> Opts {
     let opts = command().get_matches();
 
-    if let Some(val) = opts.get_one::<&str>("setup-device") {
-        Opts::SetupDevice(val.to_string())
-    } else if let Some(val) = opts.get_one::<&str>("reset-device") {
-        Opts::ResetDevice(val.to_string())
+    if let Some(val) = opts.get_one::<String>("setup-device") {
+        Opts::SetupDevice(val.clone())
+    } else if let Some(val) = opts.get_one::<String>("reset-device") {
+        Opts::ResetDevice(val.clone())
     } else {
-        let val = opts.get_one::<&str>("dir").expect("clap invariant");
-        Opts::GenerateUnits(val.to_string())
+        let val = opts.get_one::<String>("dir").expect("clap invariant");
+        Opts::GenerateUnits(val.clone())
     }
 }
 
