@@ -47,6 +47,8 @@ jobs:
         run: make program CARGOFLAGS="--verbose"
       - name: Run tests
         run: make check CARGOFLAGS="--verbose"
+      - name: Check program invocation
+        run: tests/test-invocations.sh target/release/zram-generator
 
   rustfmt:
     name: rustfmt
