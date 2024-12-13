@@ -98,6 +98,24 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
             })?,
         }
     }
+    if !device
+        .compression_algorithms
+        .recompression_global
+        .is_empty()
+    {
+        match fs::write(
+            device_sysfs_path.join("recompress"),
+            &device.compression_algorithms.recompression_global,
+        ) {
+            Ok(_) => {}
+            Err(err) => {
+                warn!(
+                    "Warning: configuring global recompression with {:?} failed: {}",
+                    device.compression_algorithms.recompression_global, err,
+                );
+            }
+        }
+    }
 
     if let Some(ref wb_dev) = device.writeback_dev {
         let writeback_path = device_sysfs_path.join("backing_dev");
