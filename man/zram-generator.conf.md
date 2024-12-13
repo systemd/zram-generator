@@ -79,8 +79,8 @@ Devices with the final size of *0* will be discarded.
   If unset, none will be configured and the kernel's default will be used.<br />
   If more than one is given, and recompression is enabled in the kernel, subsequent ones will be set as the recompression algorithms, with decreasing priority.
 
-  If a compression algorithm is suffixed with a parenthesised comma-separated list of parameters, those are given to `.../algorithm_params` (and `.../recompress`).
-  A parenthesised parameter list *without* a compression algorithm is set as the global recompression parameters.
+  If a compression algorithm is suffixed with a parenthesised comma-separated list of parameters, those are given to `.../algorithm_params`.
+  A parenthesised parameter list *without* a compression algorithm is set as the global recompression parameters (`.../recompress`).
 
 * `writeback-device`=
 
