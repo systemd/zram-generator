@@ -38,10 +38,7 @@ zram-resident-limit = maxhotplug * 3/4
 #
 # Subsequent algorithms are used for recompression.
 # Comma-separated parameters may be specified in parentheses.
-#
-# Parameters without a compression algorithm are set as
-# global recompression parameters.
-compression-algorithm = lzo-rle zstd(level=3) (type=idle)
+compression-algorithm = lzo-rle zstd(level=3)
 
 # By default, file systems and swap areas are trimmed on-the-go
 # by setting "discard".
