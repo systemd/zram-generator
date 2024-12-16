@@ -80,7 +80,7 @@ Devices with the final size of *0* will be discarded.
   If more than one is given, and recompression is enabled in the kernel, subsequent ones will be set as the recompression algorithms, with decreasing priority.
 
   If a compression algorithm is suffixed with a parenthesised comma-separated list of parameters, those are given to `.../algorithm_params`.
-  A parenthesised parameter list *without* a compression algorithm is set as the global recompression parameters (`.../recompress`).
+  A parenthesised parameter list *without* a compression algorithm is written to `.../recompress`.
 
 * `writeback-device`=
 
