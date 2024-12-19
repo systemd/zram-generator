@@ -35,6 +35,9 @@ jobs:
           sudo depmod
           sudo modprobe -v zram
           sudo modprobe -v zstd
+      - name: Enable unprivileged user namespaces
+        run: |
+          sudo sysctl kernel.unprivileged_userns_clone=1
       - name: Install Rust
         run: |
           rm -f ~/.cargo/bin/*fmt ~/.cargo/bin/rust-analyzer
