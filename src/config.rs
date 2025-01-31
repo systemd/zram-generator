@@ -139,6 +139,17 @@ impl Device {
                 (ctx.memtotal_mb as f64 / 2.).min(4096.), // DEFAULT_ZRAM_SIZE
                 "zram-size",
             )?;
+            let ratio = self.disksize / (ctx.memtotal_mb * 1024 * 1024);
+            if ratio > 32 {
+                warn!("{}: zram-size ({} = {}B) would require improbable compression ratio {} with available memory ({:.1}MB), units may be wrong",
+                      self.name,
+                      self.zram_size
+                          .as_ref()
+                          .map(|zs| &zs.0[..])
+                          .unwrap_or(DEFAULT_ZRAM_SIZE),
+                      self.disksize,
+                      ratio, ctx.memtotal_mb);
+            }
         }
 
         self.mem_limit = self.process_size(
