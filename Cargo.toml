@@ -9,7 +9,7 @@ authors = ["Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl>",
 license = "MIT"
 description = "Systemd unit generator for zram swap devices."
 homepage = "https://github.com/systemd/zram-generator"
-edition = "2021"
+edition = "2024"
 exclude = ["tests/07a-mount-point-excl", "tests/10-example"]
 
 [dependencies]
