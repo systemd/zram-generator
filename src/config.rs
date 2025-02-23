@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use fasteval::Evaler;
 use ini::Ini;
 use log::{info, warn};
@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
 use std::fmt;
 use std::fs;
-use std::io::{prelude::*, BufReader};
+use std::io::{BufReader, prelude::*};
 use std::os::unix::process::ExitStatusExt;
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -141,14 +141,17 @@ impl Device {
             )?;
             let ratio = self.disksize / (ctx.memtotal_mb * 1024 * 1024);
             if ratio > 32 {
-                warn!("{}: zram-size ({} = {}B) would require improbable compression ratio {} with available memory ({:.1}MB), units may be wrong",
-                      self.name,
-                      self.zram_size
-                          .as_ref()
-                          .map(|zs| &zs.0[..])
-                          .unwrap_or(DEFAULT_ZRAM_SIZE),
-                      self.disksize,
-                      ratio, ctx.memtotal_mb);
+                warn!(
+                    "{}: zram-size ({} = {}B) would require improbable compression ratio {} with available memory ({:.1}MB), units may be wrong",
+                    self.name,
+                    self.zram_size
+                        .as_ref()
+                        .map(|zs| &zs.0[..])
+                        .unwrap_or(DEFAULT_ZRAM_SIZE),
+                    self.disksize,
+                    ratio,
+                    ctx.memtotal_mb
+                );
             }
         }
 
@@ -179,7 +182,10 @@ impl fmt::Display for Device {
                 .map(|zs| &zs.0[..])
                 .unwrap_or(DEFAULT_RESIDENT_LIMIT),
             self.compression_algorithms,
-            self.writeback_dev.as_deref().unwrap_or_else(|| Path::new("<none>")).display(),
+            self.writeback_dev
+                .as_deref()
+                .unwrap_or_else(|| Path::new("<none>"))
+                .display(),
             self.options
         )?;
         if self.zram_fraction.is_some() || self.max_zram_size_mb.is_some() {
