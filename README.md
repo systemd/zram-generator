@@ -61,7 +61,7 @@ In case you want this path to be user-writable, since util-linux v2.39 you can u
 [zram1]
 options = X-mount.mode=1777
 ```
-(and/or the relevant `X.mount.{owner,group}=` arguments, cf. mount(8)).
+(and/or the relevant `X-mount.{owner,group}=` arguments, cf. mount(8)).
 
 Otherwise, you can use the following "high-quality hack":
 for the above example, create an
