@@ -326,7 +326,7 @@ fn test_10_example() {
                             ("lzo-rle".into(), "".into()),
                             ("zstd".into(), "level=3".into())
                         ],
-                        recompression_global: "type=idle".into(),
+                        ..Default::default()
                     }
                 );
                 assert_eq!(d.options, "");
