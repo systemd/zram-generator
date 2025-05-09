@@ -45,7 +45,7 @@ check: program
 
 clippy:
 	$(call require_env,SYSTEMD_UTIL_DIR)
-	$(CARGO) clippy $(CARGOFLAGS)
+	$(CARGO) clippy $(CARGOFLAGS) $(if $(filter $(CARGOFLAGS),--),,--) -A clippy::uninlined_format_args
 
 clean:
 	$(CARGO) clean
