@@ -34,10 +34,7 @@ fn virtualization_container() -> Result<bool> {
     {
         Ok(child) => child,
         Err(e) => {
-            warn!(
-                "systemd-detect-virt call failed, assuming we're not in a container: {}",
-                e
-            );
+            warn!("systemd-detect-virt call failed, assuming we're not in a container: {e}");
             return Ok(false);
         }
     };
@@ -58,14 +55,12 @@ fn modprobe(modname: &str, required: bool) {
 
             log!(
                 level,
-                "modprobe \"{}\" cannot be spawned, ignoring: {}",
-                modname,
-                e
+                "modprobe \"{modname}\" cannot be spawned, ignoring: {e}"
             );
         }
         Ok(status) => {
             if !status.success() {
-                warn!("modprobe \"{}\" failed, ignoring: code {}", modname, status);
+                warn!("modprobe \"{modname}\" failed, ignoring: code {status}");
             }
         }
     };
@@ -101,10 +96,7 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
             })
             .fold(0, cmp::max);
 
-        if !Path::new("/dev")
-            .join(format!("zram{}", max_device))
-            .exists()
-        {
+        if !Path::new("/dev").join(format!("zram{max_device}")).exists() {
             while fs::read_to_string("/sys/class/zram-control/hot_add")
                 .context("Adding zram device")?
                 .trim_end()
@@ -128,13 +120,13 @@ pub fn run_generator(devices: &[Device], output_directory: &Path, fake_mode: boo
 
     if !compressors.is_empty() {
         let proc_crypto = fs::read_to_string("/proc/crypto").unwrap_or_else(|e| {
-            warn!("Failed to read /proc/crypto, proceeding as if empty: {}", e);
+            warn!("Failed to read /proc/crypto, proceeding as if empty: {e}");
             String::new()
         });
         let known = parse_known_compressors(&proc_crypto);
 
         for comp in compressors.difference(&known) {
-            modprobe(&format!("crypto-{}", comp), false);
+            modprobe(&format!("crypto-{comp}"), false);
         }
     }
 
@@ -257,7 +249,7 @@ Options={options}
 
     /* enablement symlink */
     let symlink_path = output_directory.join("swap.target.wants").join(&swap_name);
-    let target_path = format!("../{}", swap_name);
+    let target_path = format!("../{swap_name}");
     make_symlink(&target_path, &symlink_path)?;
 
     Ok(())
@@ -271,7 +263,7 @@ fn unit_name_from_path(path: &Path, suffix: &str) -> String {
 
     let trimmed = path.to_str().unwrap().trim_matches('/');
     if trimmed.is_empty() {
-        format!("-{}", suffix)
+        format!("-{suffix}")
     } else {
         let mut obuf = Vec::with_capacity(path.as_os_str().len() + suffix.len());
         let mut just_slash = false;
@@ -284,7 +276,7 @@ fn unit_name_from_path(path: &Path, suffix: &str) -> String {
                 b'/' => obuf.push(b'-'),
                 b'.' if i == 0 => write!(obuf, "\\x{:02x}", b'.').unwrap(),
                 b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' | b':' | b'_' | b'.' => obuf.push(b),
-                _ => write!(obuf, "\\x{:02x}", b).unwrap(),
+                _ => write!(obuf, "\\x{b:02x}").unwrap(),
             }
         }
         obuf.extend_from_slice(suffix.as_bytes());
@@ -335,7 +327,7 @@ Options={options}
     let symlink_path = output_directory
         .join("local-fs.target.wants")
         .join(mount_name);
-    let target_path = format!("../{}", mount_name);
+    let target_path = format!("../{mount_name}");
     make_symlink(&target_path, &symlink_path)?;
 
     Ok(())

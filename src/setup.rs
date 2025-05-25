@@ -47,18 +47,18 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
                 params.as_ref().map(|p| {
                     (
                         device_sysfs_path.join("algorithm_params"),
-                        format!("algo={} {}", algo, p),
+                        format!("algo={algo} {p}"),
                     )
                 }),
             )
         } else {
             (
                 device_sysfs_path.join("recomp_algorithm"),
-                &format!("algo={} priority={}", algo, prio),
+                &format!("algo={algo} priority={prio}"),
                 params.as_ref().map(|p| {
                     (
                         device_sysfs_path.join("recompress"),
-                        format!("{} priority={}", p, prio),
+                        format!("{p} priority={prio}"),
                     )
                 }),
             )
@@ -71,8 +71,7 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
                         Ok(_) => {}
                         Err(err) => {
                             warn!(
-                                "Warning: algorithm {:?} supplemental data {:?} not written: {}",
-                                algo, data, err,
+                                "Warning: algorithm {algo:?} supplemental data {data:?} not written: {err}",
                             );
                         }
                     }
@@ -143,9 +142,7 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
         Err(e) =>
             Err(e).with_context(|| {
                 format!(
-                    "{} call failed for /dev/{}",
-                    SYSTEMD_MAKEFS_COMMAND,
-                    device_name
+                    "{SYSTEMD_MAKEFS_COMMAND} call failed for /dev/{device_name}"
                 )
             }),
     }
