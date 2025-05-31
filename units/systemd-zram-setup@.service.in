@@ -15,4 +15,4 @@ ExecStart=@SYSTEMD_SYSTEM_GENERATOR_DIR@/zram-generator --setup-device '%i'
 ExecStop=@SYSTEMD_SYSTEM_GENERATOR_DIR@/zram-generator --reset-device '%i'
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=swap.target
