@@ -35,43 +35,24 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
         .iter()
         .enumerate()
     {
-        let params = if params.is_empty() {
-            None
-        } else {
-            Some(params)
-        };
-        let (path, data, add_pathdata) = if prio == 0 {
-            (
-                device_sysfs_path.join("comp_algorithm"),
-                algo,
-                params.as_ref().map(|p| {
-                    (
-                        device_sysfs_path.join("algorithm_params"),
-                        format!("algo={algo} {p}"),
-                    )
-                }),
-            )
+        let (path, data) = if prio == 0 {
+            (device_sysfs_path.join("comp_algorithm"), algo)
         } else {
             (
                 device_sysfs_path.join("recomp_algorithm"),
                 &format!("algo={algo} priority={prio}"),
-                params.as_ref().map(|p| {
-                    (
-                        device_sysfs_path.join("recompress"),
-                        format!("{p} priority={prio}"),
-                    )
-                }),
             )
         };
 
         match fs::write(&path, data) {
             Ok(_) => {
-                if let Some((add_path, add_data)) = add_pathdata {
-                    match fs::write(add_path, add_data) {
+                if !params.is_empty() {
+                    let add_data = format!("priority={prio} {params}");
+                    match fs::write(device_sysfs_path.join("algorithm_params"), &add_data) {
                         Ok(_) => {}
                         Err(err) => {
                             warn!(
-                                "Warning: algorithm {algo:?} supplemental data {data:?} not written: {err}",
+                                "Warning: algorithm {algo:?} supplemental data {add_data:?} not written: {err}",
                             );
                         }
                     }
@@ -95,6 +76,24 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
                     path.display()
                 )
             })?,
+        }
+    }
+    if !device
+        .compression_algorithms
+        .recompression_global
+        .is_empty()
+    {
+        match fs::write(
+            device_sysfs_path.join("recompress"),
+            &device.compression_algorithms.recompression_global,
+        ) {
+            Ok(_) => {}
+            Err(err) => {
+                warn!(
+                    "Warning: configuring global recompression with {:?} failed: {}",
+                    device.compression_algorithms.recompression_global, err,
+                );
+            }
         }
     }
 
