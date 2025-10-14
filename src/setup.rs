@@ -7,7 +7,7 @@ use std::fs;
 use std::io::ErrorKind;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::process::ExitStatusExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub const SYSTEMD_MAKEFS_COMMAND: &str = concat!(
@@ -24,6 +24,29 @@ pub const AFTER_HELP: &str = concat!(
     "Uses ", env!("SYSTEMD_UTIL_DIR"), "/systemd-makefs", "."
 );
 
+fn supplemental_params_target(
+    device_sysfs_path: &Path,
+    algo: &str,
+    params: Option<&str>,
+    prio: usize,
+) -> Option<(PathBuf, String)> {
+    let params = params?.trim();
+    if params.is_empty() {
+        return None;
+    }
+
+    let mut payload = if prio == 0 {
+        format!("algo={algo}")
+    } else {
+        format!("priority={prio} algo={algo}")
+    };
+
+    payload.push(' ');
+    payload.push_str(params);
+
+    Some((device_sysfs_path.join("algorithm_params"), payload))
+}
+
 pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()> {
     let device = device.ok_or_else(|| anyhow!("Device {} not found", device_name))?;
 
@@ -38,29 +61,19 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
         let params = if params.is_empty() {
             None
         } else {
-            Some(params)
+            Some(params.as_str())
         };
         let (path, data, add_pathdata) = if prio == 0 {
             (
                 device_sysfs_path.join("comp_algorithm"),
                 algo,
-                params.as_ref().map(|p| {
-                    (
-                        device_sysfs_path.join("algorithm_params"),
-                        format!("algo={algo} {p}"),
-                    )
-                }),
+                supplemental_params_target(&device_sysfs_path, algo, params, prio),
             )
         } else {
             (
                 device_sysfs_path.join("recomp_algorithm"),
                 &format!("algo={algo} priority={prio}"),
-                params.as_ref().map(|p| {
-                    (
-                        device_sysfs_path.join("recompress"),
-                        format!("{p} priority={prio}"),
-                    )
-                }),
+                supplemental_params_target(&device_sysfs_path, algo, params, prio),
             )
         };
 
@@ -152,4 +165,36 @@ pub fn run_device_reset(device_name: &str) -> Result<()> {
     let reset = Path::new("/sys/block").join(device_name).join("reset");
     fs::write(reset, b"1")?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn supplemental_params_primary_targets_algorithm_params() {
+        let base = Path::new("/sys/block/zram0");
+        let (path, data) = supplemental_params_target(base, "zstd", Some("level=3"), 0)
+            .expect("expected supplemental params");
+
+        assert_eq!(path, base.join("algorithm_params"));
+        assert_eq!(data, "algo=zstd level=3");
+    }
+
+    #[test]
+    fn supplemental_params_secondary_includes_priority() {
+        let base = Path::new("/sys/block/zram1");
+        let (path, data) = supplemental_params_target(base, "lz4hc", Some("dict=/opt/dict"), 2)
+            .expect("expected supplemental params");
+
+        assert_eq!(path, base.join("algorithm_params"));
+        assert_eq!(data, "priority=2 algo=lz4hc dict=/opt/dict");
+    }
+
+    #[test]
+    fn supplemental_params_none_when_empty() {
+        let base = Path::new("/sys/block/zram0");
+        assert!(supplemental_params_target(base, "zstd", None, 1).is_none());
+        assert!(supplemental_params_target(base, "zstd", Some("   \t"), 1).is_none());
+    }
 }
