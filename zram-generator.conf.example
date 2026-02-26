@@ -5,7 +5,7 @@
 # directive executes /bin/sh -c program,
 # parses the output as an expression, and remembers it in variable,
 # usable in later set! and zram-size/zram-resident-limit.
-set!maxhotplug = xenstore-read /local/domain/$(xenstore-read domid)/memory/hotplug-max
+set!maxhotplug = xenstore-read memory/hotplug-max
 
 [zram0]
 # This section describes the settings for /dev/zram0.
@@ -31,7 +31,10 @@ zram-size = min(ram / 10, 2048)
 # then this device will not consume more than 128 MiB.
 #
 # 0 means no limit; this is the default.
-zram-resident-limit = maxhotplug * 3/4
+#
+# In this example, we divide the value of maxhotplug by 1024, as xenstore-read
+# reports values in KiB and we need it in MiB.
+zram-resident-limit = maxhotplug / 1024 * 3/4
 
 # The compression algorithm to use for the zram device,
 # or leave unspecified to keep the kernel default.

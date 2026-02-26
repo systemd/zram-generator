@@ -333,7 +333,7 @@ fn test_10_example() {
 
                 assert_eq!(
                     d.zram_resident_limit.as_ref().map(z_s_name),
-                    Some("maxhotplug * 3/4")
+                    Some("maxhotplug / 1024 * 3/4")
                 );
 
                 assert_eq!(d.disksize, 782 * 1024 * 1024 / 10);
