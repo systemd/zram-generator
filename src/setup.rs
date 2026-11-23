@@ -3,12 +3,13 @@
 use crate::config::Device;
 use anyhow::{anyhow, Context, Result};
 use log::warn;
-use std::fs;
 use std::io::ErrorKind;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::process::ExitStatusExt;
 use std::path::Path;
 use std::process::Command;
+use std::time::Duration;
+use std::{fs, thread};
 
 pub const SYSTEMD_MAKEFS_COMMAND: &str = concat!(
     env!(
@@ -150,6 +151,14 @@ pub fn run_device_setup(device: Option<Device>, device_name: &str) -> Result<()>
 
 pub fn run_device_reset(device_name: &str) -> Result<()> {
     let reset = Path::new("/sys/block").join(device_name).join("reset");
+    for _ in 0..100 {
+        match fs::write(&reset, b"1") {
+            Err(err) if err.kind() == ErrorKind::ResourceBusy => {
+                thread::sleep(Duration::from_millis(50))
+            }
+            other => return Ok(other?),
+        }
+    }
     fs::write(reset, b"1")?;
     Ok(())
 }
